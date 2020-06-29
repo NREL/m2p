@@ -3,3 +3,4 @@
 *.DS_Store
 m2p.egg-info/*
 dist/*
+*/.ipynb_checkpoints/*
