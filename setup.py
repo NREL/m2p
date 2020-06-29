@@ -12,7 +12,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 # Fields marked as "Optional" may be commented out.
 
 setup(
-    name='nfp',
+    name='m2p',
     version='0.1.0',
     description='Library for creating polymer structures from monomers using SMILES strings',
     long_description=long_description,
@@ -27,7 +27,7 @@ setup(
         'Intended Audience :: Developers',
 
         # Pick your license as you wish
-        'License :: OSI Approved :: BSD 3-Clause License',
+        'License :: OSI Approved :: BSD License',
 
         # Specify the Python versions you support here. In particular, ensure
         # that you indicate whether you support Python 2, Python 3 or both.
