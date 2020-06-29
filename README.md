@@ -1,3 +1,4 @@
+[![GitHub version](https://badge.fury.io/gh/NREL%2Fm2p.svg)](https://badge.fury.io/gh/NREL%2Fm2p)
 # Monomers to Polymers (m2p)
 
 A simple interface for converting monomers to polymers using SMILES representation.
