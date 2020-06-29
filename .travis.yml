@@ -1,0 +1,26 @@
+language: minimal
+env:
+  matrix:
+  - PYTHON_VERSION="3.6"
+before_install:
+- wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
+- bash miniconda.sh -b -p $HOME/miniconda
+- export PATH="$HOME/miniconda/bin:$PATH"
+- conda config --set always_yes yes --set changeps1 no
+- conda update -q conda
+install:
+- conda create -q -n test -c conda-forge python=$PYTHON_VERSION rdkit pytest tqdm
+  pandas
+- source activate test
+- python -c "import rdkit.Chem"
+- pip install -r requirements.txt
+- pip install -e .
+script:
+- pytest tests/
+deploy:
+  provider: pypi
+  user: wilsoa6
+  password:
+    secure: 
+  on:
+    tags: true

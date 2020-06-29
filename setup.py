@@ -40,7 +40,7 @@ setup(
     ],
 
     packages=find_packages(),  # Required
-    install_requires=['pandas','tqdm'],
+    install_requires=['pandas','tqdm','numpy'],
 
     project_urls={
         'Source': 'https://github.com/NREL/m2p',

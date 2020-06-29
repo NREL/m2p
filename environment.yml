@@ -1,0 +1,13 @@
+name: m2p
+channels:
+  - rdkit
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.6
+  - pandas
+  - numpy
+  - rdkit
+  - pip
+  - pip:
+    - tqdm
