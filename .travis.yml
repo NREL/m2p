@@ -20,7 +20,6 @@ script:
 deploy:
   provider: pypi
   user: wilsoa6
-  password:
-    secure: 
+
   on:
     tags: true
