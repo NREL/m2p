@@ -8,6 +8,7 @@ import warnings
 from rdkit import Chem, rdBase
 from rdkit.Chem import AllChem
 from rdkit import RDLogger
+from rdkit.Chem import Descriptors
 
 from copy import deepcopy
 from tqdm import tqdm, tqdm_pandas, tqdm_notebook
@@ -328,9 +329,9 @@ class PolyMaker():
 			# initial
 			if len(distribution)==0:distribution = [1/len(reactants)]*len(reactants)
 			rxn_dic = {'diols_acids':'[C;!$(C=O);!$([a]):6][OH:1].[#6:2][#6:3](=[O:4])([F,Cl,Br,I,#8H,O-:5])>>'
-			           '[C:6][O:1][#6:3](=[O:4])([#6:2])',
-			           'diacids_ols':'[#6:2][#6:3](=[O:4])([F,Cl,Br,I,#8H,O-:5]).[C;!$(C=O);!$([a]):6][OH:1]>>'
-			           '[C:6][O:1][#6:3](=[O:4])([#6:2])'}
+					   '[C:6][O:1][#6:3](=[O:4])([#6:2])',
+					   'diacids_ols':'[#6:2][#6:3](=[O:4])([F,Cl,Br,I,#8H,O-:5]).[C;!$(C=O);!$([a]):6][OH:1]>>'
+					   '[C:6][O:1][#6:3](=[O:4])([#6:2])'}
 			df_func = self.get_functionality(reactants,distribution)
 
 			#select initial monomer as polymer chain
@@ -342,16 +343,16 @@ class PolyMaker():
 			for i in range(DP-1):
 				#select rxn rule and reactant
 				if (df_func.loc['polymer','aliphatic_ols']>=1)&(df_func.loc['polymer','acids']>=1):
-				    a = random.choice(df_func.loc[((df_func.acids>=1)|(df_func.aliphatic_ols>=1))&(df_func.index!='polymer')].index.tolist())
-				    if df_func.loc[a].aliphatic_ols>=1: rxn_selector ='diacids_ols'
-				    if df_func.loc[a].acids >=1: rxn_selector = 'diols_acids'
-				    rxn = Chem.AllChem.ReactionFromSmarts(rxn_dic[rxn_selector])
+					a = random.choice(df_func.loc[((df_func.acids>=1)|(df_func.aliphatic_ols>=1))&(df_func.index!='polymer')].index.tolist())
+					if df_func.loc[a].aliphatic_ols>=1: rxn_selector ='diacids_ols'
+					if df_func.loc[a].acids >=1: rxn_selector = 'diols_acids'
+					rxn = Chem.AllChem.ReactionFromSmarts(rxn_dic[rxn_selector])
 				elif df_func.loc['polymer','aliphatic_ols'] >=2:
-				    a = random.choice(df_func.loc[(df_func.acids>=1)&(df_func.index!='polymer')].index.tolist())
-				    rxn = Chem.AllChem.ReactionFromSmarts(rxn_dic['diols_acids'])
+					a = random.choice(df_func.loc[(df_func.acids>=1)&(df_func.index!='polymer')].index.tolist())
+					rxn = Chem.AllChem.ReactionFromSmarts(rxn_dic['diols_acids'])
 				elif df_func.loc['polymer','acids']>=2:
-				    a = random.choice(df_func.loc[(df_func.aliphatic_ols>=1)&(df_func.index!='polymer')].index.tolist())
-				    rxn = Chem.AllChem.ReactionFromSmarts(rxn_dic['diacids_ols'])
+					a = random.choice(df_func.loc[(df_func.aliphatic_ols>=1)&(df_func.index!='polymer')].index.tolist())
+					rxn = Chem.AllChem.ReactionFromSmarts(rxn_dic['diacids_ols'])
 
 				#update df_func table
 				df_func.loc['polymer']+=df_func.loc[a]
@@ -392,16 +393,16 @@ class PolyMaker():
 			for i in range(DP-1):
 				#select rxn rule and reactant
 				if (df_func.loc['polymer','prime_amines']>=1)&(df_func.loc['polymer','acids']>=1):
-				    a = random.choice(df_func.loc[((df_func.acids>=1)|(df_func.prime_amines>=1))&(df_func.index!='polymer')].index.tolist())
-				    if df_func.loc[a].prime_amines>=1: rxn_selector ='diacids_amines'
-				    if df_func.loc[a].acids >=1: rxn_selector = 'diamines_acids'
-				    rxn = Chem.AllChem.ReactionFromSmarts(rxn_dic[rxn_selector])
+					a = random.choice(df_func.loc[((df_func.acids>=1)|(df_func.prime_amines>=1))&(df_func.index!='polymer')].index.tolist())
+					if df_func.loc[a].prime_amines>=1: rxn_selector ='diacids_amines'
+					if df_func.loc[a].acids >=1: rxn_selector = 'diamines_acids'
+					rxn = Chem.AllChem.ReactionFromSmarts(rxn_dic[rxn_selector])
 				elif df_func.loc['polymer','prime_amines'] >=2:
-				    a = random.choice(df_func.loc[(df_func.acids>=1)&(df_func.index!='polymer')].index.tolist())
-				    rxn = Chem.AllChem.ReactionFromSmarts(rxn_dic['diamines_acids'])
+					a = random.choice(df_func.loc[(df_func.acids>=1)&(df_func.index!='polymer')].index.tolist())
+					rxn = Chem.AllChem.ReactionFromSmarts(rxn_dic['diamines_acids'])
 				elif df_func.loc['polymer','acids']>=2:
-				    a = random.choice(df_func.loc[(df_func.prime_amines>=1)&(df_func.index!='polymer')].index.tolist())
-				    rxn = Chem.AllChem.ReactionFromSmarts(rxn_dic['diacids_amines'])
+					a = random.choice(df_func.loc[(df_func.prime_amines>=1)&(df_func.index!='polymer')].index.tolist())
+					rxn = Chem.AllChem.ReactionFromSmarts(rxn_dic['diacids_amines'])
 
 				#update df_func table
 				df_func.loc['polymer']+=df_func.loc[a]
@@ -421,13 +422,36 @@ class PolyMaker():
 		return poly, 'amide'
 
 	def __poly_carbonate(self,reactants,DP=2,distribution=[]):
+		def choose_rxn(reactants):
+			#this chooses the right rxn scheme depeneding on the carbonate monomer
+			sreq = '[O:2]=[C:3]([F,Cl,Br,I,O:4])([F,Cl,Br,I:5])'
+			if np.any([len(Chem.MolFromSmiles(r).GetSubstructMatch(Chem.MolFromSmarts(sreq))) for r in reactants]):
+				rxn_dic = {'diols_carbonates':'[C,c;!$(C=O):0][OH:1].[O:2]=[C:3]([F,Cl,Br,I,O:4])([F,Cl,Br,I:5])>>'
+															  '[O:2]=[C:3]([O:1][C,c:0])[X:4]',
+						   'carbonates_diols':'[O:2]=[C:3]([F,Cl,Br,I,O:4])([F,Cl,Br,I:5]).[C,c;!$(C=O):0][OH:1]>>'
+															  '[O:2]=[C:3]([O:1][C,c:0])[X:4]'}
+			sreq = '[O:2]=[C:3]([O:4][C,c:6])([O:5][C,c])'
+			if np.any([len(Chem.MolFromSmiles(r).GetSubstructMatch(Chem.MolFromSmarts(sreq))) for r in reactants]):
+				rxn_dic = {'diols_carbonates':'[C,c;!$(C=O):0][OH:1].[O:2]=[C:3]([O:4][C,c:6])([O:5][C,c])>>'
+															  '[O:2]=[C:3]([O:1][C,c:0])[O:4][C,c:6]',
+						   'carbonates_diols':'[O:2]=[C:3]([O:4][C,c:6])([O:5][C,c]).[C,c;!$(C=O):0][OH:1]>>'
+															  '[O:2]=[C:3]([O:1][C,c:0])[O:4][C,c:6]'}
+			return rxn_dic
+		def get_prods_matching_mw(molpoly,mola,prodlist,rxn_selector,leavegroup_MW_dict):
+			returnlist = []
+			mwexpected = np.round(Descriptors.MolWt(molpoly)+Descriptors.MolWt(mola)-leavegroup_MW,2)
+			for prod in prodlist:
+				mprod = Chem.MolFromSmiles(prod)
+				mwprod = np.round(Descriptors.MolWt(mprod),2)
+				if (mwexpected-.1<mwprod<mwexpected+.1):
+					returnlist.append(prod)
+				#print(mwprod,mwexpected,mwexpected-.1,mwexpected+.1)
+			return returnlist
 		try:
+
 			# initial
 			if len(distribution)==0:distribution = [1/len(reactants)]*len(reactants)
-			rxn_dic = {'diols_carbonates':'[C,c;!$(C=O):0][OH:1].[O:2]=[C:3]([F,Cl,Br,I,O:4])([F,Cl,Br,I:5])>>'
-			                                              '[O:2]=[C:3]([O:1][C,c:0])[X:4]',
-			           'carbonates_diols':'[O:2]=[C:3]([F,Cl,Br,I,O:4])([F,Cl,Br,I:5]).[C,c;!$(C=O):0][OH:1]>>'
-			                                              '[O:2]=[C:3]([O:1][C,c:0])[X:4]'}
+			rxn_dic = choose_rxn(reactants)
 			df_func = self.get_functionality(reactants,distribution)
 
 			#select initial monomer as polymer chain
@@ -436,33 +460,52 @@ class PolyMaker():
 			poly = df_poly.index[0]
 			molpoly = Chem.MolFromSmiles(poly)
 			for i in range(DP-1):
+				#print('\n'*2,'DP={}'.format(i))
+				
 				#select rxn rule and reactant
 				if (df_func.loc['polymer','ols']>=1)&(df_func.loc['polymer','carbonates']>=0.5):
-				    a = random.choice(df_func.loc[((df_func.ols>=1)|(df_func.carbonates>=0.5))&(df_func.index!='polymer')].index.tolist())
-				    if (df_func.loc[a].ols>=1): 
-				    	rxn_selector ='carbonates_diols'
-				    if (df_func.loc[a].carbonates >=0.5): 
-				    	rxn_selector = 'diols_carbonates'
-				    rxn = Chem.AllChem.ReactionFromSmarts(rxn_dic[rxn_selector])
-
+					#print('1')
+					a = random.choice(df_func.loc[((df_func.ols>=1)|(df_func.carbonates>=0.5))&(df_func.index!='polymer')].index.tolist())
+					if (df_func.loc[a].ols>=1): 
+						#print('1.1')
+						rxn_selector ='carbonates_diols'
+					if (df_func.loc[a].carbonates >=0.5):
+						#print('1.2')
+						rxn_selector = 'diols_carbonates'
 				elif df_func.loc['polymer','ols'] >=2:
-				    a = random.choice(df_func.loc[(df_func.carbonates>=0.5)&(df_func.index!='polymer')].index.tolist())
-				    rxn = Chem.AllChem.ReactionFromSmarts(rxn_dic['diols_carbonates'])
+					#print('2')
+					a = random.choice(df_func.loc[(df_func.carbonates>=0.5)&(df_func.index!='polymer')].index.tolist())
+					rxn_selector = 'diols_carbonates'
+
 				elif df_func.loc['polymer','carbonates']>=1:
-				    a = random.choice(df_func.loc[(df_func.ols>=1)&(df_func.index!='polymer')].index.tolist())
-				    rxn = Chem.AllChem.ReactionFromSmarts(rxn_dic['carbonates_diols'])
+					#print('3')
+					a = random.choice(df_func.loc[(df_func.ols>=1)&(df_func.index!='polymer')].index.tolist())
+					rxn_selector ='carbonates_diols'
+				rxn = Chem.AllChem.ReactionFromSmarts(rxn_dic[rxn_selector])
 				#update df_func table
 				df_func.loc['polymer']+=df_func.loc[a]
 				df_func.loc['polymer','ols'] += -1
 				df_func.loc['polymer','carbonates'] += -0.5
 				assert df_func.loc['polymer'][df_func.loc['polymer']>-1].shape==df_func.loc['polymer'].shape
+				
 				# React and select product
+				#print('mola',a)
+				#print('molpoly',Chem.MolToSmiles(molpoly))
+				#print(df_func)
 				mola = Chem.MolFromSmiles(a)
-				prod = rxn.RunReactants((molpoly,mola))
-				prodlist = [Chem.MolToSmiles(x[0]) for x in prod]
-				prodlist = self.__returnvalid(prodlist)
+					# get leaving group mw
+				if ((i == 0)&(rxn_selector=='diols_carbonates')):
+					leavegroup_MW = (Descriptors.MolWt(mola)-Descriptors.MolWt(Chem.MolFromSmiles('C=O'))+4)/2
+				if ((i == 0)&(rxn_selector=='carbonates_diols')):
+					leavegroup_MW = (Descriptors.MolWt(molpoly)-Descriptors.MolWt(Chem.MolFromSmiles('C=O'))+4)/2
+				prods = rxn.RunReactants((molpoly,mola))
+				allprodlist = [Chem.MolToSmiles(x[0]) for x in prods]
+				prodlist = pd.Series(self.__returnvalid(allprodlist)).unique().tolist()
+				prodlist = get_prods_matching_mw(molpoly,mola,prodlist,rxn_selector,leavegroup_MW)
 				poly = random.choice(prodlist)
+				#print('poly product  ',poly,'\n'*2)
 				molpoly = Chem.MolFromSmiles(poly)
+
 		except:
 			poly='ERROR:Carbonate_ReactionFailed'
 		return poly, 'carbonate'
@@ -489,16 +532,16 @@ class PolyMaker():
 			for i in range(DP-1):
 				#select rxn rule and reactant
 				if (df_func.loc['polymer','prime_amines']>=1)&(df_func.loc['polymer','acidanhydrides']>=1):
-				    a = random.choice(df_func.loc[((df_func.acids>=1)|(df_func.prime_amines>=1))&(df_func.index!='polymer')].index.tolist())
-				    if df_func.loc[a].prime_amines>=1: rxn_selector ='diacidanhydrides_amines'
-				    if df_func.loc[a].acidanhydrides >=1: rxn_selector = 'diamines_acidanhydrides'
-				    rxn = Chem.AllChem.ReactionFromSmarts(rxn_dic[rxn_selector])
+					a = random.choice(df_func.loc[((df_func.acids>=1)|(df_func.prime_amines>=1))&(df_func.index!='polymer')].index.tolist())
+					if df_func.loc[a].prime_amines>=1: rxn_selector ='diacidanhydrides_amines'
+					if df_func.loc[a].acidanhydrides >=1: rxn_selector = 'diamines_acidanhydrides'
+					rxn = Chem.AllChem.ReactionFromSmarts(rxn_dic[rxn_selector])
 				elif df_func.loc['polymer','prime_amines'] >=2:
-				    a = random.choice(df_func.loc[(df_func.acidanhydrides>=1)&(df_func.index!='polymer')].index.tolist())
-				    rxn = Chem.AllChem.ReactionFromSmarts(rxn_dic['diamines_acidanhydrides'])
+					a = random.choice(df_func.loc[(df_func.acidanhydrides>=1)&(df_func.index!='polymer')].index.tolist())
+					rxn = Chem.AllChem.ReactionFromSmarts(rxn_dic['diamines_acidanhydrides'])
 				elif df_func.loc['polymer','acidanhydrides']>=2:
-				    a = random.choice(df_func.loc[(df_func.prime_amines>=1)&(df_func.index!='polymer')].index.tolist())
-				    rxn = Chem.AllChem.ReactionFromSmarts(rxn_dic['diacidanhydrides_amines'])
+					a = random.choice(df_func.loc[(df_func.prime_amines>=1)&(df_func.index!='polymer')].index.tolist())
+					rxn = Chem.AllChem.ReactionFromSmarts(rxn_dic['diacidanhydrides_amines'])
 
 				#update df_func table
 				df_func.loc['polymer']+=df_func.loc[a]
