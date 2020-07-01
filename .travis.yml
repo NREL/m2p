@@ -20,6 +20,8 @@ install:
 script:
 - pytest tests/
 deploy:
+  on:
+    branch: master
   provider: pypi
   user: wilsoa6
   password:
