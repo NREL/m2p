@@ -2,6 +2,8 @@ language: minimal
 env:
   matrix:
   - PYTHON_VERSION="3.6"
+  global:
+    secure: Zw4AYqbM8v99R3yQLfcENj7GmVyUtKwQEctS3TW60N+YdDfTa2l2V5Y6I4kSAYdmWEstf8sGLZy3Y0PDKvrnBjn35GrRtdCWsQHVBSwi3hXqlmkQva5MnRCjbZlVUbdJ4N+8TusZfZXeGcfiKoWERv+lVGPwJBZSbmjevBpckzqs8ngDYf9wuOY3p4zAWo0lQy5aVuZEPyHNx7aSfBhZhRmCfc1XrD5gz+6daIOx8/8cxJ2hQAv3KaVg6sKEmWAvfhaYRGYDYi5YrOQvXtmUcQ3LapKVxuV/vpQsetU5k8aEkBcSPV+KqH0qCsRlVklLIukqSHFDdBpR3o8tej0KHhZkqU+edeGe6rQwuW9mJ9mIttdBgPysrXZ1RsPlVMA8rXvSp6nvVTxcq9VOXaK5eW4nxGCIWdJ/F48j08BtepO9E9iwQEDjWsHpolIVidm2X2i7AS2DZN4F6dqlvB7HhguNeWNKdXCjdJEZUvg8W//m03X3j9ICbgRF2hDU7dyK/V9gzMsWt6n7anYiLb552mW1KJQ3zPs4X673JHIj5M1uRLJrLLbMmnR5DHC0oiuAPgvGuP1qzeeAH28jAOi0bxgjw6XifhLtX6Z0i11HSsjhSFJX9L9MxFkK4kuqlxOufFH7CdAa4lFIt8vPZxrjsyh0mcHjv4ppZ0CVWFj8fTc=
 before_install:
 - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
 - bash miniconda.sh -b -p $HOME/miniconda
@@ -18,8 +20,10 @@ install:
 script:
 - pytest tests/
 deploy:
+  skip_cleanup: true
   provider: pypi
   user: wilsoa6
-
+  password:
+    secure: 
   on:
     tags: true
