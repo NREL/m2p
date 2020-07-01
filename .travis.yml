@@ -18,6 +18,7 @@ install:
 script:
 - pytest tests/
 deploy:
+  skip_cleanup: true
   provider: pypi
   user: wilsoa6
   password:
