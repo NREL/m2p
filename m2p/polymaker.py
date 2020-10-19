@@ -221,7 +221,7 @@ class PolyMaker():
 		prod = rxn.RunReactants((mola,molb))
 		prodlist = [Chem.MolToSmiles(x[0]) for x in prod]
 
-		return self.__returnvalid(prodlist)
+		return self.returnvalid(prodlist)
 
 	def __poly_vinyl_prop(self,a,b):
 		'''performs propagation rxn of vinyl polymer'''
@@ -237,7 +237,7 @@ class PolyMaker():
 		prod = rxn.RunReactants((mola,molb))
 		prodlist = [Chem.MolToSmiles(x[0]) for x in prod]
 
-		return self.__returnvalid(prodlist)
+		return self.returnvalid(prodlist)
 
 	def __poly_vinyl_term(self,a):
 		'''performs termination rxn of vinyl polymer'''
@@ -252,7 +252,7 @@ class PolyMaker():
 		prod = rxn.RunReactants((mola,))
 		prodlist = [Chem.MolToSmiles(x[0]) for x in prod]
 
-		return self.__returnvalid(prodlist)
+		return self.returnvalid(prodlist)
 
 	def __poly_vinyl(self,reactants,DP=2):
 		''' performs vinyl polymerization'''
