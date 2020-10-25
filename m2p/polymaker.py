@@ -27,6 +27,14 @@ class PolyMaker():
 							'carbonates':'[O]=[C]([F,Cl,Br,I,O])([F,Cl,Br,I,O])',
 							'acidanhydrides':'[#8]([#6](=[#8]))([#6](=[#8]))',
 							'prime_thiols':'[#6;!$(C=O)][SH]'}
+		self.reactions = {'ester':
+									{'diols_acids':'[C;!$(C=O);!$([a]):6][OH:1].[#6:2][#6:3](=[O:4])([F,Cl,Br,I,#8H,O-:5])>>'
+										'[C:6][O:1][#6:3](=[O:4])([#6:2])',
+									'diacids_ols':'[#6:2][#6:3](=[O:4])([F,Cl,Br,I,#8H,O-:5]).[C;!$(C=O);!$([a]):6][OH:1]>>'
+										'[C:6][O:1][#6:3](=[O:4])([#6:2])',
+									'infinite_chain':'([C;!$(C=O);!$([a]):1][OH:2].[#6:3][#6:4](=[O:5])([F,Cl,Br,I,OH,O-:6]))>>'
+										 '[*:1][*:2][*:4](=[*:5])[*:3]'}
+						}
 		self.__verison__ = 'm2p version: 2019.07.01'
 
 	def checksmile(self,s):
@@ -101,7 +109,7 @@ class PolyMaker():
 		
 		return [int(d) for d in distribution]
 	
-	def polymerize(self,reactants,DP=2,mechanism='',replicate_structures=1,distribution=[]):
+	def thermoplastic(self,reactants,DP=2,mechanism='',replicate_structures=1,distribution=[],infinite_chain=False):
 		'''Main polymerization method
 
 		Inputs:
@@ -146,13 +154,14 @@ class PolyMaker():
 																					ast.literal_eval(row.monomers),
 																					DP,
 																					mechanism,
-																					distribution),
+																					distribution,
+																					infinite_chain),
 																			axis=1)
 			
 			returnpoly = pd.concat([returnpoly,returnpoly_i])
 		return returnpoly
 
-	def __polymerizemechanism(self,reactants,DP,mechanism,distribution=[]):
+	def __polymerizemechanism(self,reactants,DP,mechanism,distribution=[],infinite_chain=False):
 		'''directs polymerization to correct method for mechanism'''
 		returnpoly = ''
 		reactants = self.get_distributed_reactants(reactants,distribution=distribution)
@@ -163,7 +172,7 @@ class PolyMaker():
 			mechanism = polydata[1]
 
 		elif mechanism=='ester':
-			polydata = self.__poly_ester(reactants,DP)
+			polydata = self.__poly_ester(reactants,DP,infinite_chain)
 			returnpoly = polydata[0]
 			mechanism = polydata[1]
 		
@@ -345,16 +354,13 @@ class PolyMaker():
 		df_func = pd.DataFrame(data = 0,index=reactants,columns=['ols','acids','prime_amines','carbonates','aliphatic_ols','acidanhydrides'])
 		return df_func.apply(lambda r: id_functionality(r),axis=1)
 
-	def __poly_ester(self,reactants,DP=2):
+	def __poly_ester(self,reactants,DP=2,infinite_chain=False):
 		'''performs condenstation reaction on dicarboxyl and  diols'''
 		# function
 
 		# initial
 		try:
-			rxn_dic = {'diols_acids':'[C;!$(C=O);!$([a]):6][OH:1].[#6:2][#6:3](=[O:4])([F,Cl,Br,I,#8H,O-:5])>>'
-						'[C:6][O:1][#6:3](=[O:4])([#6:2])',
-						'diacids_ols':'[#6:2][#6:3](=[O:4])([F,Cl,Br,I,#8H,O-:5]).[C;!$(C=O);!$([a]):6][OH:1]>>'
-						'[C:6][O:1][#6:3](=[O:4])([#6:2])'}
+			rxn_dic = self.reactions['ester']
 			df_func = self.get_functionality(reactants)
 			df_func_singles = self.get_functionality(np.unique(reactants))
 
@@ -363,8 +369,10 @@ class PolyMaker():
 			df_func.loc['polymer'] = df_poly.sample(1).values[0]
 			poly = df_poly.index[0]
 			molpoly = Chem.MolFromSmiles(poly)
-
-			for i in range(DP-1):
+			
+			DP_count=1
+			DP_actual = 1
+			while DP_count<DP:
 				
 				#select rxn rule and reactant
 				if (df_func.loc['polymer','aliphatic_ols']>=1)&(df_func.loc['polymer','acids']>=1):
@@ -395,6 +403,29 @@ class PolyMaker():
 				poly = random.choice(prodlist)
 				molpoly = Chem.MolFromSmiles(poly)
 
+
+				# manage loop and ring close
+				if (infinite_chain)&(DP_count==DP-1):
+					# logic for closing ring
+					if (df_func.loc['polymer','aliphatic_ols']>0)&(df_func.loc['polymer','acids'])>0:
+						#case for when has can ring close
+						DP_count+=1
+						DP_actual+=1
+					else:
+						#case for when has same terminal ends so can't ring close
+						DP_count = DP_count
+						DP_actual+=1
+				else:
+					DP_count+=1
+					DP_actual+=1
+
+			if infinite_chain: #closes ring
+				rxn = Chem.AllChem.ReactionFromSmarts(rxn_dic['infinite_chain'])
+				prod = rxn.RunReactants((molpoly,))
+				prodlist = [Chem.MolToSmiles(x[0]) for x in prod]
+				prodlist = self.returnvalid(prodlist)
+				poly = random.choice(prodlist)
+				molpoly = Chem.MolFromSmiles(poly)
 
 		except:
 			poly='ERROR:Ester_ReactionFailed'
