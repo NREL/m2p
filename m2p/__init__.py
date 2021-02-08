@@ -1,1 +1,7 @@
-from m2p.polymaker import PolyMaker
+from .polymaker import (
+	PolyMaker
+)
+
+from .polyestimator import (
+	PolyEstimator
+)
