@@ -288,19 +288,7 @@ class PolyMaker():
 				 pass
 		rdBase.EnableLog('rdApp.error')
 		return returnlist
-	#####REMOVE>>>>>
-	def get_distributed_reactants(self,reactants,distribution=[]):
-		
-		if len(distribution)!=0:
-			distribution = self.__integerize_distribution(distribution)
-			smiles_list = []
-			for reactant,mol in zip(reactants,distribution):
-				smiles_list = smiles_list+[reactant]*mol
-			return_reactants = self.get_monomers('.'.join(smiles_list))
-		else:return_reactants=reactants
-		return return_reactants 
 
-	#####REMOVE<<<<<
 	def __get_distributed_reactants(self,reactants,distribution=[]):
 		
 		if len(distribution)!=0:
@@ -430,49 +418,6 @@ class PolyMaker():
 		prodlist = [Chem.MolToSmiles(x[0]) for x in prod]
 		molprodlist = [Chem.MolFromSmiles(p) for p in self.__returnvalid(prodlist)]
 		return molprodlist
-
-	#####REMOVE>>>>>
-	def poly_vinyl(self,reactants,DP=3,crosslink=False):
-		''' performs vinyl polymerization'''
-
-		#mol conversion and parsing
-		mols = [Chem.MolFromSmiles(r) for r in reactants]
-		if crosslink:
-			molA = [self.__protect_substructure(mols[0],substructure='C=C',n_unprotected=1)]
-			molB = [self.__protect_substructure(mols[1],substructure='C=C',n_unprotected=1)]
-			mols = mols[2:]
-		else:
-			molA = mols
-			molB = mols
-			mols = mols
-		
-		#polymerization
-		assert DP>1
-		try:
-		
-			if DP>2:
-				# initiate
-				polymer = self.__poly_vinyl_init(random.choice(molA),
-												random.choice(mols))
-				# propagate		
-				for r in range(0,DP-3):
-					assert len(polymer)>=1
-					polymer = self.__poly_vinyl_prop(random.choice(polymer),
-													random.choice(mols)) 
-
-				#terminate 
-				polymer = self.__poly_vinyl_term(random.choice(polymer),
-													random.choice(molB))
-				
-			if DP==2:
-				polymer = self.__poly_vinyl_term(random.choice(molA),
-													random.choice(molB),single_rxn=True)
-			polymer = Chem.MolToSmiles(random.choice(polymer))
-		except:
-			polymer = 'ERROR:Vinyl_ReactionFailed'
-		return polymer, 'vinyl'
-
-	#####REMOVE<<<<<
 
 	def __poly_vinyl(self,reactants,DP=3,crosslink=False):
 		''' performs vinyl polymerization'''
