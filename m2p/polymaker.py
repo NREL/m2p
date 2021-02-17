@@ -230,8 +230,9 @@ class PolyMaker():
 			returnpoly_i.loc[:,'replicate_structure']=rep
 			returnpoly_i.loc[:,'monomers'] = returnpoly_i.monomers.astype(str)
 			returnpoly = pd.concat([returnpoly,returnpoly_i])
+
 		if verbose:
-			returnpoly[['polymer','mechanism']] = returnpoly_i.progress_apply(
+			returnpoly[['polymer','mechanism']] = returnpoly.progress_apply(
 																			lambda row: 
 																				self.__polymerizemechanism_thermoplastic(
 																					ast.literal_eval(row.monomers),
@@ -241,7 +242,7 @@ class PolyMaker():
 																					infinite_chain),
 																			axis=1)
 		else:
-			returnpoly[['polymer','mechanism']] = returnpoly_i.apply(
+			returnpoly[['polymer','mechanism']] = returnpoly.apply(
 																			lambda row: 
 																				self.__polymerizemechanism_thermoplastic(
 																					ast.literal_eval(row.monomers),
@@ -290,7 +291,6 @@ class PolyMaker():
 				 pass
 		rdBase.EnableLog('rdApp.error')
 		return returnlist
-	
 	def __get_distributed_reactants(self,reactants,distribution=[]):
 		
 		if len(distribution)!=0:
@@ -313,7 +313,7 @@ class PolyMaker():
 		
 		return [int(d) for d in distribution]
 	
-	def __polymerizemechanism_thermoplastic(self,reactants,DP,mechanism,distribution=[],infinite_chain=False):
+	def __polymerizemechanism_thermoplastic(self,reactants,DP,mechanism,distribution=[],infinite_chain=False,rep=None):
 		'''directs polymerization to correct method for mechanism'''
 
 		returnpoly = ''
@@ -325,6 +325,7 @@ class PolyMaker():
 			mechanism = polydata[1]
 
 		elif mechanism=='ester':
+
 			polydata = self.__poly_ester(reactants,DP,infinite_chain)
 			returnpoly = polydata[0]
 			mechanism = polydata[1]
@@ -387,7 +388,7 @@ class PolyMaker():
 		'''performs propagation rxn of vinyl polymer'''
 
 		#rxn definition
-		rxn = AllChem.ReactionFromSmarts('[C:1]=[C:2].[C:3]=[C:4]>>[C:1][C:2][C:3]=[C:4]')
+		rxn = AllChem.ReactionFromSmarts('[C:1]=[C:2].[C:3]=[C:4]>>[C:1][C:2][C:3][C:4][X]')
 
 		#product creation and validation
 		prod = rxn.RunReactants((mola,molb))
@@ -399,7 +400,7 @@ class PolyMaker():
 		'''performs propagation rxn of vinyl polymer'''
 
 		#rxn definition
-		rxn = AllChem.ReactionFromSmarts('[C:0][C:1][C:2]=[C:3].[C:4]=[C:5]>>[C:0][C:1][C:2][C:3][C:4]=[C:5]')
+		rxn = AllChem.ReactionFromSmarts('[C:0][C:1][C:2][C:3][X].[C:4]=[C:5]>>[C:0][C:1][C:2][C:3][C:4][C:5][X]')
 
 		#product creation and validation
 		prod = rxn.RunReactants((mola,molb))
@@ -414,7 +415,7 @@ class PolyMaker():
 		#rxn definition
 		
 		if single_rxn:	rxn = AllChem.ReactionFromSmarts('[C:0]=[C:1].[C:2]=[C:3]>>[C:0][C:1][C:2][C:3]')
-		else: 			rxn = AllChem.ReactionFromSmarts('[C:0][C:1][C:2]=[C:3].[C:4]=[C:5]>>[C:0][C:1][C:2][C:3][C:4][C:5]')
+		else: 			rxn = AllChem.ReactionFromSmarts('[C:0][C:1][C:2][C:3][X].[C:4]=[C:5]>>[C:0][C:1][C:2][C:3][C:4][C:5]')
 		#product creation and validation
 		prod = rxn.RunReactants((mola,molb))
 		prodlist = [Chem.MolToSmiles(x[0]) for x in prod]
@@ -490,7 +491,7 @@ class PolyMaker():
 
 	def __poly_ester(self,reactants,DP=2,infinite_chain=False):
 		'''performs condenstation reaction on dicarboxyl and  diols'''
-			try:
+		try:
 			#open acid anhydrides
 			def replace_acidanhydrides(reactant):
 				mol = Chem.MolFromSmiles(reactant)
@@ -515,7 +516,7 @@ class PolyMaker():
 			DP_count=1
 			DP_actual = 1
 			while DP_count<DP:
-				
+		
 				#select rxn rule and reactant
 				if (df_func.loc['polymer','aliphatic_ols']>=1)&(df_func.loc['polymer','acids']>=1):
 					a = random.choice(df_func.loc[((df_func.acids>=1)|(df_func.aliphatic_ols>=1))&(df_func.index!='polymer')].index.tolist())
@@ -573,6 +574,7 @@ class PolyMaker():
 
 		except:
 			poly='ERROR:Ester_ReactionFailed'
+
 		return poly, 'ester'
 
 	def __poly_amide(self,reactants,DP=2):
