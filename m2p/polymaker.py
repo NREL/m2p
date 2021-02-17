@@ -33,15 +33,21 @@ class PolyMaker():
 							'carbonates':'[O]=[C]([F,Cl,Br,I,O])([F,Cl,Br,I,O])',
 							'acidanhydrides':'[#8]([#6](=[#8]))([#6](=[#8]))',
 							'prime_thiols':'[#6;!$(C=O)][SH]'}
-		self.reactions = {'ester':
+		self.reactions = {	'ester':
 									{'diols_acids':'[C;!$(C=O);!$([a]):6][OH:1].[#6:2][#6:3](=[O:4])([F,Cl,Br,I,#8H,O-:5])>>'
 										'[C:6][O:1][#6:3](=[O:4])([#6:2])',
 									'diacids_ols':'[#6:2][#6:3](=[O:4])([F,Cl,Br,I,#8H,O-:5]).[C;!$(C=O);!$([a]):6][OH:1]>>'
 										'[C:6][O:1][#6:3](=[O:4])([#6:2])',
 									'infinite_chain':'([C;!$(C=O);!$([a]):1][OH:2].[#6:3][#6:4](=[O:5])([F,Cl,Br,I,OH,O-:6]))>>'
 										 '[*:1][*:2][*:4](=[*:5])[*:3]'},
-						 'open_acidanhydrides':
-						 			{'add_OH':'[#8:3]([#6:4](=[#8:5]))([#6:6](=[#8:7]))>>[#8:3]([#6:4](=[#8:5])(O))([#6:6](=[#8:7]))',}
+							'amide': 
+									{'diamines_acids':'[#6;!$(C=O):0][NH2;!$([NH2+]):1].[#6:2][#6:3](=[O:4])([#8H,O-:5])>>'
+										'[#6:0][NH:1][#6:3](=[O:4])([#6:2])',
+									'diacids_amines':'[#6:2][#6:3](=[O:4])([#8H,O-:5]).[#6;!$(C=O):0][NH2;!$([NH2+]):1]>>'
+										'[#6:0][NH:1][#6:3](=[O:4])([#6:2])'},
+							'open_acidanhydrides':
+									{'add_OH':'[#8:3]([#6:4](=[#8:5]))([#6:6](=[#8:7]))>>'
+										'[#8:3]([#6:4](=[#8:5])(O))([#6:6](=[#8:7]))'}
 						}
 		self.__verison__ = '0.1.1'
 
@@ -83,7 +89,7 @@ class PolyMaker():
 			monomers=s
 		return monomers
 
-	def thermoset(self,reactants,mechanism,crosslinker=[],mols=[],DP=10,replicate_structures=1):
+	def thermoset(self,reactants,mechanism,crosslinker=[],mols=[],DP=10,replicate_structures=1,verbose=True):
 		''' Inputs:
 			reactants: contains smiles strings for reactants used in the polymer for both backbone and crosslinks
 				a tuple 
@@ -170,15 +176,26 @@ class PolyMaker():
 			#building dataframe
 			returnpoly = pd.concat([returnpoly,returnpoly_i])
 		# build polymers
-		returnpoly[['polymer','mechanism']] = returnpoly_i.progress_apply(
-																		lambda row: 
-																			self.__polymerizemechanism_thermoset(
-																				leval(row.monomers),
-																				row.mechanism,
-																				leval(row.crosslinker),
-																				leval(row.mols),
-																				DP),
-																		axis=1)
+		if verbose:
+			returnpoly[['polymer','mechanism']] = returnpoly.progress_apply(
+																			lambda row: 
+																				self.__polymerizemechanism_thermoset(
+																					leval(row.monomers),
+																					row.mechanism,
+																					leval(row.crosslinker),
+																					leval(row.mols),
+																					DP),
+																			axis=1)
+		else:
+			returnpoly[['polymer','mechanism']] = returnpoly.apply(
+																			lambda row: 
+																				self.__polymerizemechanism_thermoset(
+																					leval(row.monomers),
+																					row.mechanism,
+																					leval(row.crosslinker),
+																					leval(row.mols),
+																					DP),
+																			axis=1)
 		returnpoly = returnpoly.sort_index().sort_values('replicate_structure')
 
 		# BUILD STRUCTURE
@@ -291,6 +308,7 @@ class PolyMaker():
 				 pass
 		rdBase.EnableLog('rdApp.error')
 		return returnlist
+
 	def __get_distributed_reactants(self,reactants,distribution=[]):
 		
 		if len(distribution)!=0:
@@ -301,7 +319,7 @@ class PolyMaker():
 			return_reactants = self.get_monomers('.'.join(smiles_list))
 		else:return_reactants=reactants
 		return return_reactants 
-			
+	
 	def __integerize_distribution(self,distribution):
 		numdecimals = max([str(d)[::-1].find('.') for d in distribution])
 		if numdecimals==-1:numdecimals=0
@@ -428,8 +446,8 @@ class PolyMaker():
 		#mol conversion and parsing
 		mols = [Chem.MolFromSmiles(r) for r in reactants]
 		if crosslink:
-			molA = [self.__protect_substructure(mols[0],substructure='C=C',n_unprotected=1)]
-			molB = [self.__protect_substructure(mols[1],substructure='C=C',n_unprotected=1)]
+			molA = [mols[0]]
+			molB = [mols[1]]
 			mols = mols[2:]
 		else:
 			molA = mols
@@ -439,11 +457,12 @@ class PolyMaker():
 		#polymerization
 		assert DP>1
 		try:
-		
 			if DP>2:
 				# initiate
+
 				polymer = self.__poly_vinyl_init(random.choice(molA),
 												random.choice(mols))
+
 				# propagate		
 				for r in range(0,DP-3):
 					assert len(polymer)>=1
@@ -468,7 +487,9 @@ class PolyMaker():
 		mol: rdkit mol object
 		substructure: SMARTS string to match to
 		n_uprotected: number of substructures that will not be protected'''
-		
+		if type(mol)==str:
+			mol=Chem.MolFromSmiles(mol)
+
 		mol = deepcopy(mol)
 		protect = list(mol.GetSubstructMatches(Chem.MolFromSmarts(substructure)))
 		random.shuffle(protect)
@@ -479,7 +500,7 @@ class PolyMaker():
 		for atom in mol.GetAtoms():
 			if atom.GetIdx() in protect: atom.SetProp('_protected','1')
 			else: pass
-		return mol
+		return [mol, len(protect)]
 
 	def __unprotect_atoms(self,mol):
 		'''unprotects all atoms in molecule'''
@@ -583,9 +604,7 @@ class PolyMaker():
 
 		try:
 		#	initial
-
-			rxn_dic = {'diamines_acids':'[#6;!$(C=O):0][NH2;!$([NH2+]):1].[#6:2][#6:3](=[O:4])([#8H,O-:5])>>[#6:0][NH:1][#6:3](=[O:4])([#6:2])',
-						'diacids_amines':'[#6:2][#6:3](=[O:4])([#8H,O-:5]).[#6;!$(C=O):0][NH2;!$([NH2+]):1]>>[#6:0][NH:1][#6:3](=[O:4])([#6:2])'}
+			rxn_dic = self.reactions['amide']
 
 			df_func = self.get_functionality(reactants)
 			df_func_singles = self.get_functionality(np.unique(reactants))
@@ -760,7 +779,12 @@ class PolyMaker():
 		return poly, 'imide'
 
 	def __poly_upe(self,reactants,crosslinker,mols,DP):
-		
+		''' generates 2 ringed thermoset
+			reactants: list of smiles
+			crosslinker: boolean list indicating which reactants are in the ring structure and which are in the crosslink
+			mols: number of mols in reaction, this is not just the molar ratio and should be actual mols
+			DP: integer, degree of polymerization
+		'''
 		#getting distributed reactants and parsing monomers
 
 		monomers = np.array(self.__get_distributed_reactants(reactants,mols))
@@ -773,20 +797,40 @@ class PolyMaker():
 
 
 		# parse DP
-		#to be inserted
-		#make rings
-		dfrings = self.thermoplastic(monomers_backbone,
-					mechanism='ester',
-					DP=DP,
-					replicate_structures=2,
-					infinite_chain=True,
-					verbose=False)
-		if dfrings.polymer.str.contains('ERROR').any():
+			# to be inserted
+
+		#make rings by generating ring structures, makes 20 attempts to have ring with a reaction cite and protects any other reactions cites
+		ring1=ring2='ERROR'
+		i=0
+		while ring1=='ERROR'or ring2=='ERROR':
+			dfrings = self.thermoplastic(monomers_backbone,
+						mechanism='ester',
+						DP=DP,
+						replicate_structures=1,
+						infinite_chain=True,
+						verbose=False)
+
+			if dfrings.polymer.str.contains('ERROR').any():#makes sure the ester reaction worked before trying to protect
+				pass
+			else:
+				mol,p = dfrings.apply(lambda row: self.__protect_substructure(row.polymer,'C=C',n_unprotected=1),axis=1)[0]
+				if p>0:
+					if ring1=='ERROR':
+						ring1=mol
+					else:
+						ring2=mol
+			i+=1
+			if i>20:break
+
+		if type(ring1)==str or type(ring2)==str: #makes sure rings have been assigned, if error could be because ring didnt have rxn site or bc ester rxn failed
 			poly='ERROR:Ester_ReactionFailed'
 		else:
+			rings = [Chem.MolToSmiles(s) for s in [ring1,ring2]]
+
 			## connect rings
-			reactant_ringclose = list(dfrings.polymer)+list(monomers_crosslinker)
+			reactant_ringclose = rings+list(monomers_crosslinker)
 			poly = self.__poly_vinyl(reactant_ringclose,DP=DP,crosslink=True)[0]
+
 			if 'ERROR' in poly:poly='ERROR:Vinyl_ReactionFailed'
 
 		return poly,'UPE'
@@ -802,55 +846,4 @@ class PolyMaker():
 		mol.RemoveBond(0,1)
 		return Chem.MolToSmiles(mol)
 
-	# def __protect_carboxyols(self,mol,randomselect=False):
-	# 	'''protects all but the first hydroxyl and carboxyl in a molecule'''
 
-	# 	mol = deepcopy(mol)   
-
-	# 	#randomly select which functional group should be protected
-	# 	if randomselect:
-	# 		rc = random.choice(['first','last'])
-	# 	else:
-	# 		rc = 'first'
-		
-	# 	if rc=='first':
-	# 		#protect all but one ol
-	# 		for match in mol.GetSubstructMatches(Chem.MolFromSmarts('[C][OH]'))[1:]:
-	# 			mol.GetAtomWithIdx(match[0]).SetProp('_protected','1')
-	# 		#protect all but one carboxyl
-	# 		for match in mol.GetSubstructMatches(Chem.MolFromSmarts('[O][C]=[O]'))[1:]:
-	# 			mol.GetAtomWithIdx(match[1]).SetProp('_protected','1')
-	# 	else:
-	# 		#protect all but one ol
-	# 		for match in mol.GetSubstructMatches(Chem.MolFromSmarts('[C][OH]'))[:1]:
-	# 			mol.GetAtomWithIdx(match[0]).SetProp('_protected','1')
-	# 		#protect all but one carboxyl
-	# 		for match in mol.GetSubstructMatches(Chem.MolFromSmarts('[O][C]=[O]'))[:1]:
-	# 			mol.GetAtomWithIdx(match[1]).SetProp('_protected','1')    
-	# 	return mol
-
-	# def __protect_carboxyamines(self,mol,randomselect=False):
-	# 	'''protects all but the first hydroxyl and carboxyl in a molecule'''
-
-	# 	mol = deepcopy(mol)   
-
-	# 	if randomselect:
-	# 		rc = random.choice(['first','last'])
-	# 	else:
-	# 		rc = 'first'
-		
-	# 	if rc=='first':
-	# 		#protect all but one ol
-	# 		for match in mol.GetSubstructMatches(Chem.MolFromSmarts('[#6][NH2]'))[1:]:
-	# 			mol.GetAtomWithIdx(match[0]).SetProp('_protected','1')
-	# 		#protect all but one carboxyl
-	# 		for match in mol.GetSubstructMatches(Chem.MolFromSmarts('[O][C]=[O]'))[1:]:
-	# 			mol.GetAtomWithIdx(match[1]).SetProp('_protected','1')
-	# 	else:
-	# 		#protect all but one ol
-	# 		for match in mol.GetSubstructMatches(Chem.MolFromSmarts('[#6][NH2]'))[:1]:
-	# 			mol.GetAtomWithIdx(match[0]).SetProp('_protected','1')
-	# 		#protect all but one carboxyl
-	# 		for match in mol.GetSubstructMatches(Chem.MolFromSmarts('[O][C]=[O]'))[:1]:
-	# 			mol.GetAtomWithIdx(match[1]).SetProp('_protected','1')    
-	# 	return mol
