@@ -60,6 +60,13 @@ class PolyMaker():
 															'[O:2]=[C:3]([O:1][C,c:0])[O:4][C,c:6]',
 													'infinite_chain':'([C,c;!$(C=O):0][OH:1].[O:2]=[C:3]([O:4][C,c:6])([O:5][C,c]))>>'
 															'[O:2]=[C:3]([O:1][C,c:0])[O:4][C,c:6]'}},
+							'imide':
+									{'diacidanhydrides_amines':'[#8:3]([#6:4](=[#8:5]))([#6:6](=[#8:7])).[#6;!$(C=O):0][NH2:1]>>'
+											'[#6:0][N:1]([#6:4](=[#8:5]))([#6:6](=[#8:7]))',
+									 'diamines_acidanhydrides':'[#6;!$(C=O):0][NH2:1].[#8:3]([#6:4](=[#8:5]))([#6:6](=[#8:7]))>>'
+									 		'[#6:0][N:1]([#6:4](=[#8:5]))([#6:6](=[#8:7]))',
+									 'infinite_chain':'([#8:3]([#6:4](=[#8:5]))([#6:6](=[#8:7])).[#6;!$(C=O):0][NH2:1])>>'
+                							'[#6:0][N:1]([#6:4](=[#8:5]))([#6:6](=[#8:7]))'},
 							'open_acidanhydrides':
 									{'add_OH':'[#8:3]([#6:4](=[#8:5]))([#6:6](=[#8:7]))>>'
 										'[#8:3]([#6:4](=[#8:5])(O))([#6:6](=[#8:7]))'}
@@ -876,7 +883,7 @@ class PolyMaker():
 			poly='ERROR:Carbonate_ReactionFailed'
 		return poly, 'carbonate'
 
-	def __poly_imide(self,reactants,DP=2):
+	def __poly_imide(self,reactants,DP=2, distribution = [],infinite_chain=False):
 		'''performs condenstation reaction on dianhydride and  diamine'''
 		# function
 
@@ -886,8 +893,8 @@ class PolyMaker():
 			rxn_dic = {'diacidanhydrides_amines':'[#8:3]([#6:4](=[#8:5]))([#6:6](=[#8:7])).[#6;!$(C=O):0][NH2:1]>>[#6:0][N:1]([#6:4](=[#8:5]))([#6:6](=[#8:7]))',
 						'diamines_acidanhydrides':'[#6;!$(C=O):0][NH2:1].[#8:3]([#6:4](=[#8:5]))([#6:6](=[#8:7]))>>[#6:0][N:1]([#6:4](=[#8:5]))([#6:6](=[#8:7]))'}
 			
-			df_func = self.get_functionality(reactants)
-			df_func_singles = self.get_functionality(np.unique(reactants))
+			rxn_dic = self.reactions['imide']
+			df_func = self.get_functionality(reactants,distribution=distribution)
 
 			#select initial monomer as polymer chain
 			df_poly = df_func.sample(1)
@@ -895,24 +902,33 @@ class PolyMaker():
 			poly = df_poly.index[0]
 			molpoly = Chem.MolFromSmiles(poly)
 
-			for i in range(DP-1):
+			DP_count=1
+			DP_actual = 1
+			while DP_count<DP:
+
 				#select rxn rule and reactant
 				if (df_func.loc['polymer','prime_amines']>=1)&(df_func.loc['polymer','acidanhydrides']>=1):
-					a = random.choice(df_func.loc[((df_func.acids>=1)|(df_func.prime_amines>=1))&(df_func.index!='polymer')].index.tolist())
+					msk = ((df_func.acids>=1)|(df_func.prime_amines>=1))&(df_func.index!='polymer')
+					df_func_select = df_func.loc[msk]
+					a = df_func_select.sample(1,weights=df_func.distribution,replace=True).index.values[0]
 					if np.all(df_func.loc[a].prime_amines>=1): rxn_selector ='diacidanhydrides_amines'
 					if np.all(df_func.loc[a].acidanhydrides >=1): rxn_selector = 'diamines_acidanhydrides'
 				elif df_func.loc['polymer','prime_amines'] >=2:
-					a = random.choice(df_func.loc[(df_func.acidanhydrides>=1)&(df_func.index!='polymer')].index.tolist())
+					msk = (df_func.acidanhydrides>=1)&(df_func.index!='polymer')
+					df_func_select = df_func.loc[msk]
+					a = df_func_select.sample(1,weights=df_func.distribution,replace=True).index.values[0]
 					rxn_selector = 'diamines_acidanhydrides'
 				elif df_func.loc['polymer','acidanhydrides']>=2:
-					a = random.choice(df_func.loc[(df_func.prime_amines>=1)&(df_func.index!='polymer')].index.tolist())
+					msk = (df_func.prime_amines>=1)&(df_func.index!='polymer')
+					df_func_select = df_func.loc[msk]
+					a = df_func_select.sample(1,weights=df_func.distribution,replace=True).index.values[0]
 					rxn_selector = 'diacidanhydrides_amines'
 				else:
 					assert False
 				rxn = Chem.AllChem.ReactionFromSmarts(rxn_dic[rxn_selector])
 
 				#update df_func table
-				df_func.loc['polymer']=df_func.loc['polymer']+df_func_singles.loc[a]# adding polymer and a
+				df_func.loc['polymer']=df_func.loc['polymer']+df_func.loc[a]# adding polymer and a
 				for column_name,adder in zip(['prime_amines','acidanhydrides'],[-1,-1]):
 					df_func.loc['polymer',column_name] += adder
 				assert df_func.loc['polymer'][df_func.loc['polymer']>-1].shape==df_func.loc['polymer'].shape
@@ -920,6 +936,29 @@ class PolyMaker():
 				#React and select product
 				mola = Chem.MolFromSmiles(a)
 				prod = rxn.RunReactants((molpoly,mola))
+				prodlist = [Chem.MolToSmiles(x[0]) for x in prod]
+				prodlist = self.__returnvalid(prodlist)
+				poly = random.choice(prodlist)
+				molpoly = Chem.MolFromSmiles(poly)
+
+				# manage loop and ring close
+				if (infinite_chain)&(DP_count==DP-1):
+					# logic for closing ring
+					if (df_func.loc['polymer','prime_amines']>0)&(df_func.loc['polymer','acidanhydrides'])>0:
+						#case for when has can ring close
+						DP_count+=1
+						DP_actual+=1
+					else:
+						#case for when has same terminal ends so can't ring close
+						DP_count = DP_count
+						DP_actual+=1
+				else:
+					DP_count+=1
+					DP_actual+=1
+
+			if infinite_chain: #closes ring
+				rxn = Chem.AllChem.ReactionFromSmarts(rxn_dic['infinite_chain'])
+				prod = rxn.RunReactants((molpoly,))
 				prodlist = [Chem.MolToSmiles(x[0]) for x in prod]
 				prodlist = self.__returnvalid(prodlist)
 				poly = random.choice(prodlist)
