@@ -47,9 +47,23 @@ class PolyMaker():
 										'[#6:0][NH:1][#6:3](=[O:4])([#6:2])',
 									'infinite_chain':'([#6;!$(C=O):1][NH2;!$([NH2+]):2].[#6:3][#6:4](=[O:5])([#8H,O-:6]))>>'
 										 '[*:1][*:2][*:4](=[*:5])[*:3]'},
+							'carbonate':{
+									'phosgene':{'diols_carbonates':'[C,c;!$(C=O):0][OH:1].[O:2]=[C:3]([F,Cl,Br,I,O:4])([F,Cl,Br,I:5])>>'
+															'[O:2]=[C:3]([O:1][C,c:0])[X:4]',
+												'carbonates_diols':'[O:2]=[C:3]([F,Cl,Br,I,O:4])([F,Cl,Br,I:5]).[C,c;!$(C=O):0][OH:1]>>'
+															'[O:2]=[C:3]([O:1][C,c:0])[X:4]',
+												'infinite_chain':'([C,c;!$(C=O):0][OH:1].[O:2]=[C:3]([F,Cl,Br,I,O:4])([F,Cl,Br,I:5]))>>'
+															'[O:2]=[C:3]([O:4])([O:1][C,c:0])'},
+									'nonphosgene':{'diols_carbonates':'[C,c;!$(C=O):0][OH:1].[O:2]=[C:3]([O:4][C,c:6])([O:5][C,c])>>'
+															'[O:2]=[C:3]([O:1][C,c:0])[O:4][C,c:6]',
+						   							'carbonates_diols':'[O:2]=[C:3]([O:4][C,c:6])([O:5][C,c]).[C,c;!$(C=O):0][OH:1]>>'
+															'[O:2]=[C:3]([O:1][C,c:0])[O:4][C,c:6]',
+													'infinite_chain':'([C,c;!$(C=O):0][OH:1].[O:2]=[C:3]([O:4][C,c:6])([O:5][C,c]))>>'
+															'[O:2]=[C:3]([O:1][C,c:0])[O:4][C,c:6]'}},
 							'open_acidanhydrides':
 									{'add_OH':'[#8:3]([#6:4](=[#8:5]))([#6:6](=[#8:7]))>>'
 										'[#8:3]([#6:4](=[#8:5])(O))([#6:6](=[#8:7]))'}
+
 						}
 		self.__verison__ = '0.1.1'
 
@@ -684,7 +698,7 @@ class PolyMaker():
 			DP_count=1
 			DP_actual = 1
 
-			for i in range(DP-1):
+			while DP_count<DP:
 				
 				#select rxn rule and reactant
 				if (df_func.loc['polymer','prime_amines']>=1)&(df_func.loc['polymer','acids']>=1):
@@ -749,83 +763,118 @@ class PolyMaker():
 			poly='ERROR:Amide_ReactionFailed'
 		return poly, 'amide'
 
-	def __poly_carbonate(self,reactants,DP=2):
-		def choose_rxn(reactants):
+	def __poly_carbonate(self,reactants,DP=2, distribution = [],infinite_chain=False):
+
+		def choose_carbonyltype(reactants):
 			#this chooses the right rxn scheme depeneding on the carbonate monomer
-			sreq = '[O:2]=[C:3]([F,Cl,Br,I,O:4])([F,Cl,Br,I:5])'
-			if np.any([len(Chem.MolFromSmiles(r).GetSubstructMatch(Chem.MolFromSmarts(sreq))) for r in reactants]):
-				rxn_dic = {'diols_carbonates':'[C,c;!$(C=O):0][OH:1].[O:2]=[C:3]([F,Cl,Br,I,O:4])([F,Cl,Br,I:5])>>'
-															  '[O:2]=[C:3]([O:1][C,c:0])[X:4]',
-						   'carbonates_diols':'[O:2]=[C:3]([F,Cl,Br,I,O:4])([F,Cl,Br,I:5]).[C,c;!$(C=O):0][OH:1]>>'
-															  '[O:2]=[C:3]([O:1][C,c:0])[X:4]'}
-			sreq = '[O:2]=[C:3]([O:4][C,c:6])([O:5][C,c])'
-			if np.any([len(Chem.MolFromSmiles(r).GetSubstructMatch(Chem.MolFromSmarts(sreq))) for r in reactants]):
-				rxn_dic = {'diols_carbonates':'[C,c;!$(C=O):0][OH:1].[O:2]=[C:3]([O:4][C,c:6])([O:5][C,c])>>'
-															  '[O:2]=[C:3]([O:1][C,c:0])[O:4][C,c:6]',
-						   'carbonates_diols':'[O:2]=[C:3]([O:4][C,c:6])([O:5][C,c]).[C,c;!$(C=O):0][OH:1]>>'
-															  '[O:2]=[C:3]([O:1][C,c:0])[O:4][C,c:6]'}
-			return rxn_dic
-		def get_prods_matching_mw(molpoly,mola,prodlist,rxn_selector,leavegroup_MW_dict):
+			template_phosgene = '[O:2]=[C:3]([F,Cl,Br,I,O:4])([F,Cl,Br,I:5])'
+			template_nonphosgene = '[O:2]=[C:3]([O:4][C,c:6])([O:5][C,c])'
+			if np.any([len(Chem.MolFromSmiles(r).GetSubstructMatch(Chem.MolFromSmarts(template_phosgene))) for r in reactants]):carbonyltype='phosgene'
+			if np.any([len(Chem.MolFromSmiles(r).GetSubstructMatch(Chem.MolFromSmarts(template_nonphosgene))) for r in reactants]):carbonyltype='nonphosgene'
+			
+			return carbonyltype
+		
+		def get_prods_matching_mw(molpoly,mola,prodlist,leavegroup_MW,infinite_chain=False):
 			returnlist = []
-			mwexpected = np.round(Descriptors.MolWt(molpoly)+Descriptors.MolWt(mola)-leavegroup_MW,2)
+
+			if not infinite_chain:
+				mwexpected = np.round(Descriptors.MolWt(molpoly)+Descriptors.MolWt(mola)-leavegroup_MW,2)
+			else:
+				mwexpected = np.round(Descriptors.MolWt(molpoly)-leavegroup_MW,2)
+
 			for prod in prodlist:
 				mprod = Chem.MolFromSmiles(prod)
 				mwprod = np.round(Descriptors.MolWt(mprod),2)
 				if (mwexpected-.1<mwprod<mwexpected+.1):
 					returnlist.append(prod)
-				#print(mwprod,mwexpected,mwexpected-.1,mwexpected+.1)
 			return returnlist
-			try:
+		try:
 
-				# initial
-				rxn_dic = choose_rxn(reactants)
-				df_func = self.get_functionality(reactants)
-				df_func_singles = self.get_functionality(np.unique(reactants))
+			# initial
+			carbonyltype = choose_carbonyltype(reactants)
+			rxn_dic = self.reactions['carbonate'][carbonyltype]
+			df_func = self.get_functionality(reactants,distribution=distribution)
 
-				#select initial monomer as polymer chain
-				df_poly = df_func.sample(1)
-				df_func.loc['polymer'] = df_poly.sample(1).values[0]
-				poly = df_poly.index[0]
+			#select initial monomer as polymer chain
+			df_poly = df_func.sample(1)
+			df_func.loc['polymer'] = df_poly.sample(1).values[0]
+			poly = df_poly.index[0]
+			molpoly = Chem.MolFromSmiles(poly)
+
+			DP_count=1
+			DP_actual = 1
+
+			while DP_count<DP:
+				# print(df_func)
+				#select rxn rule and reactant
+				if (df_func.loc['polymer','ols']>=1)&(df_func.loc['polymer','carbonates']>=0.5):
+					msk =((df_func.ols>=1)|(df_func.carbonates>=0.5))&(df_func.index!='polymer')
+					df_func_select = df_func.loc[msk]
+					a = df_func_select.sample(1,weights=df_func.distribution,replace=True).index.values[0]
+					if np.all(df_func.loc[a].ols>=1): rxn_selector ='carbonates_diols'
+					if np.all(df_func.loc[a].carbonates >=0.5):rxn_selector = 'diols_carbonates'
+				elif df_func.loc['polymer','ols'] >=2:
+					msk = (df_func.carbonates>=0.5)&(df_func.index!='polymer')
+					df_func_select = df_func.loc[msk]
+					a = df_func_select.sample(1,weights=df_func.distribution,replace=True).index.values[0]
+					rxn_selector = 'diols_carbonates'
+				elif df_func.loc['polymer','carbonates']>=1:
+					msk = (df_func.ols>=1)&(df_func.index!='polymer')
+					df_func_select = df_func.loc[msk]
+					a = df_func_select.sample(1,weights=df_func.distribution,replace=True).index.values[0]
+					rxn_selector ='carbonates_diols'
+				else: 
+					assert False
+				rxn = Chem.AllChem.ReactionFromSmarts(rxn_dic[rxn_selector])
+
+				#update df_func table    
+				df_func.loc['polymer']=df_func.loc['polymer']+df_func.loc[a]# adding polymer and a
+				for column_name,adder in zip(['ols','carbonates'],[-1,-0.5]):
+					df_func.loc['polymer',column_name] += adder
+				assert df_func.loc['polymer'][df_func.loc['polymer']>-1].shape==df_func.loc['polymer'].shape
+				
+				mola = Chem.MolFromSmiles(a)
+
+				if ((DP_count-1 == 0)&(rxn_selector=='diols_carbonates')):
+					leavegroup_MW = (Descriptors.MolWt(mola)-Descriptors.MolWt(Chem.MolFromSmiles('C=O'))+4)/2
+				if ((DP_count-1 == 0)&(rxn_selector=='carbonates_diols')):
+					leavegroup_MW = (Descriptors.MolWt(molpoly)-Descriptors.MolWt(Chem.MolFromSmiles('C=O'))+4)/2
+				prods = rxn.RunReactants((molpoly,mola))
+				allprodlist = [Chem.MolToSmiles(x[0]) for x in prods]
+				prodlist = pd.Series(self.__returnvalid(allprodlist)).unique().tolist()
+				prodlist = get_prods_matching_mw(molpoly,mola,prodlist,leavegroup_MW)
+				poly = random.choice(prodlist)
 				molpoly = Chem.MolFromSmiles(poly)
-				for i in range(DP-1):
 
-					#select rxn rule and reactant
-					if (df_func.loc['polymer','ols']>=1)&(df_func.loc['polymer','carbonates']>=0.5):
-						a = random.choice(df_func.loc[((df_func.ols>=1)|(df_func.carbonates>=0.5))&(df_func.index!='polymer')].index.tolist())
-						if np.all(df_func.loc[a].ols>=1): rxn_selector ='carbonates_diols'
-						if np.all(df_func.loc[a].carbonates >=0.5):rxn_selector = 'diols_carbonates'
-					elif df_func.loc['polymer','ols'] >=2:
-						a = random.choice(df_func.loc[(df_func.carbonates>=0.5)&(df_func.index!='polymer')].index.tolist())
-						rxn_selector = 'diols_carbonates'
-					elif df_func.loc['polymer','carbonates']>=1:
-						a = random.choice(df_func.loc[(df_func.ols>=1)&(df_func.index!='polymer')].index.tolist())
-						rxn_selector ='carbonates_diols'
-					else: 
-						assert False
-					rxn = Chem.AllChem.ReactionFromSmarts(rxn_dic[rxn_selector])
+				# manage loop and ring close
+				if (infinite_chain)&(DP_count==DP-1):
+					# logic for closing ring
+					if (df_func.loc['polymer','ols']>0)&(df_func.loc['polymer','carbonates']>0):
+						#case for when has can ring close
+						DP_count+=1
+						DP_actual+=1
+					else:
+						#case for when has same terminal ends so can't ring close
+						DP_count = DP_count
+						DP_actual+=1
+				else:
+					DP_count+=1
+					DP_actual+=1
 
-					#update df_func table    
-					df_func.loc['polymer']=df_func.loc['polymer']+df_func_singles.loc[a]# adding polymer and a
-					for column_name,adder in zip(['ols','carbonates'],[-1,-0.5]):
-						df_func.loc['polymer',column_name] += adder
-					assert df_func.loc['polymer'][df_func.loc['polymer']>-1].shape==df_func.loc['polymer'].shape
-					
-					mola = Chem.MolFromSmiles(a)
-					if ((i == 0)&(rxn_selector=='diols_carbonates')):
-						leavegroup_MW = (Descriptors.MolWt(mola)-Descriptors.MolWt(Chem.MolFromSmiles('C=O'))+4)/2
-					if ((i == 0)&(rxn_selector=='carbonates_diols')):
-						leavegroup_MW = (Descriptors.MolWt(molpoly)-Descriptors.MolWt(Chem.MolFromSmiles('C=O'))+4)/2
-					prods = rxn.RunReactants((molpoly,mola))
-					allprodlist = [Chem.MolToSmiles(x[0]) for x in prods]
-					prodlist = pd.Series(self.__returnvalid(allprodlist)).unique().tolist()
-					prodlist = get_prods_matching_mw(molpoly,mola,prodlist,rxn_selector,leavegroup_MW)
-					poly = random.choice(prodlist)
+			if infinite_chain: #closes ring
 
-					molpoly = Chem.MolFromSmiles(poly)
+				rxn = Chem.AllChem.ReactionFromSmarts(rxn_dic['infinite_chain'])
+				prod = rxn.RunReactants((molpoly,))
+				prodlist = [Chem.MolToSmiles(x[0]) for x in prod]
+				prodlist = self.__returnvalid(prodlist)
+				prodlist = get_prods_matching_mw(molpoly,mola,prodlist,leavegroup_MW,infinite_chain=True)
+				poly = random.choice(prodlist)
+				molpoly = Chem.MolFromSmiles(poly)
 
-			except:
-				poly='ERROR:Carbonate_ReactionFailed'
-			return poly, 'carbonate'
+
+		except:
+			poly='ERROR:Carbonate_ReactionFailed'
+		return poly, 'carbonate'
 
 	def __poly_imide(self,reactants,DP=2):
 		'''performs condenstation reaction on dianhydride and  diamine'''
