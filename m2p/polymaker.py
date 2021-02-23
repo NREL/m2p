@@ -417,11 +417,11 @@ class PolyMaker():
 			mechanism = polydata[1]
 
 		elif mechanism=='all':
-				polylist = [self.__poly_vinyl(reactants,DP),
-							self.__poly_ester(reactants,DP,infinite_chain),
-							self.__poly_amide(reactants,DP),
-							self.__poly_carbonate(reactants,DP),
-							self.__poly_imide(reactants,DP)]
+				polylist = [self.__poly_vinyl(reactants,DP,distribution,infinite_chain),
+							self.__poly_ester(reactants,DP,distribution,infinite_chain),
+							self.__poly_amide(reactants,DP,distribution,infinite_chain),
+							self.__poly_carbonate(reactants,DP,distribution,infinite_chain),
+							self.__poly_imide(reactants,DP,distribution,infinite_chain)]
 
 				polylist = [p for p in polylist if p[0] not in ['ERROR:Vinyl_ReactionFailed',
 															'ERROR:Ester_ReactionFailed',
@@ -597,6 +597,7 @@ class PolyMaker():
 
 	def __poly_ester(self,reactants,DP=2, distribution = [],infinite_chain=False):
 		'''performs condenstation reaction on dicarboxyl and  diols'''
+
 		try:
 			#open acid anhydrides
 			def replace_acidanhydrides(reactant):
@@ -620,6 +621,7 @@ class PolyMaker():
 
 			DP_count=1
 			DP_actual = 1
+
 			while DP_count<DP:
 		
 				#select rxn rule and reactant
@@ -640,7 +642,6 @@ class PolyMaker():
 					a = df_func_select.sample(1,weights=df_func.distribution,replace=True).index.values[0]
 					rxn_selector = 'diacids_ols'
 				else:
-					print(df_func)
 					assert False
 				rxn = Chem.AllChem.ReactionFromSmarts(rxn_dic[rxn_selector])
 			   
