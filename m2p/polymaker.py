@@ -14,12 +14,12 @@ from rdkit.Chem import Descriptors
 
 from ast import literal_eval as leval
 from copy import deepcopy
-from tqdm import tqdm, tqdm_pandas, tqdm_notebook
+from tqdm import tqdm
 
 import casadi as cas
 from casadi import SX,integrator,vertcat
 
-tqdm.pandas(tqdm_notebook)
+tqdm.pandas()
 lg = RDLogger.logger()
 lg.setLevel(RDLogger.ERROR)
 

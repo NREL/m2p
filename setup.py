@@ -40,7 +40,7 @@ setup(
     ],
 
     packages=find_packages(),  # Required
-    install_requires=['pandas','tqdm','numpy'],
+    install_requires=['pandas','tqdm','numpy','casadi'],
 
     project_urls={
         'Source': 'https://github.com/NREL/m2p',

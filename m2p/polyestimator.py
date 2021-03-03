@@ -13,14 +13,14 @@ from rdkit import RDLogger
 from rdkit.Chem import Descriptors
 
 from copy import deepcopy
-from tqdm import tqdm, tqdm_pandas, tqdm_notebook
+from tqdm import tqdm
 
 import casadi as cas
 from casadi import SX,integrator,vertcat
 
 from .polymaker import PolyMaker
 
-tqdm.pandas(tqdm_notebook)
+tqdm.pandas()
 lg = RDLogger.logger()
 lg.setLevel(RDLogger.ERROR)
 
