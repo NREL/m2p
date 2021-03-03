@@ -5,7 +5,7 @@ pm = PolyMaker()
 
 @pytest.fixture
 def vinyl():
-	return pm.polymerize("C=C",DP=10,mechanism="vinyl").polymer[0]
+	return pm.thermoplastic("C=C",DP=10,mechanism="vinyl").polymer[0]
 
 def test_vinyl(vinyl):
 	smile_vinyl = vinyl
