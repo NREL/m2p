@@ -4,3 +4,7 @@
 m2p.egg-info/*
 dist/*
 */.ipynb_checkpoints/*
+figs_nopush/*
+data_nopush/*
+notebooks_nopush/*
+*ipynb
