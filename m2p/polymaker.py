@@ -14,12 +14,12 @@ from rdkit.Chem import Descriptors
 
 from ast import literal_eval as leval
 from copy import deepcopy
-from tqdm import tqdm, tqdm_pandas, tqdm_notebook
+from tqdm import tqdm
 
 import casadi as cas
 from casadi import SX,integrator,vertcat
 
-tqdm.pandas(tqdm_notebook)
+tqdm.pandas()
 lg = RDLogger.logger()
 lg.setLevel(RDLogger.ERROR)
 
@@ -72,7 +72,8 @@ class PolyMaker():
 										'[#8:3]([#6:4](=[#8:5])(O))([#6:6](=[#8:7]))'}
 
 						}
-		self.__verison__ = '0.1.2'
+		self.__verison__ = '0.1.2.1'
+
 
 	def checksmile(self,s):
 		'''checks to make sure monomer is readable by rdkit and 

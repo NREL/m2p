@@ -13,7 +13,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 
 setup(
     name='m2p',
-    version='0.1.2',
+    version='0.1.2.1',
     description='Library for creating polymer structures from monomers using SMILES strings',
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -40,7 +40,7 @@ setup(
     ],
 
     packages=find_packages(),  # Required
-    install_requires=['pandas','tqdm','numpy'],
+    install_requires=['pandas','tqdm','numpy','casadi'],
 
     project_urls={
         'Source': 'https://github.com/NREL/m2p',
