@@ -225,7 +225,7 @@ class PolyMaker():
 
 		return returnpoly
 
-	def thermoplastic(self,reactants,DP=2,mechanism='',replicate_structures=1,distribution=[],infinite_chain=False,verbose=True):
+	def thermoplastic(self,reactants,DP=2,mechanism='',replicate_structures=1,distribution=[],pm=0,infinite_chain=False,verbose=True):
 		'''Polymerization method for building thermoplastics
 
 		Inputs:
@@ -275,6 +275,15 @@ class PolyMaker():
 			returnpoly_i.loc[:,'monomers'] = returnpoly_i.monomers.astype(str)
 			returnpoly = pd.concat([returnpoly,returnpoly_i])
 
+			row = returnpoly.iloc[0]
+			self.__polymerizemechanism_thermoplastic(
+						ast.literal_eval(row.monomers),
+						DP,
+						mechanism,
+						ast.literal_eval(row.distribution),
+						pm,
+						infinite_chain)
+
 		if verbose:
 			returnpoly[['polymer','mechanism']] = returnpoly.progress_apply(
 																			lambda row: 
@@ -283,6 +292,7 @@ class PolyMaker():
 																					DP,
 																					mechanism,
 																					ast.literal_eval(row.distribution),
+																					pm,
 																					infinite_chain),
 																			axis=1)
 		else:
@@ -293,6 +303,7 @@ class PolyMaker():
 																					DP,
 																					mechanism,
 																					ast.literal_eval(row.distribution),
+																					pm,
 																					infinite_chain),
 																			axis=1)
 		returnpoly = returnpoly.sort_index().sort_values('replicate_structure')
@@ -384,7 +395,7 @@ class PolyMaker():
 		
 		return [int(d) for d in distribution]
 	
-	def __polymerizemechanism_thermoplastic(self,reactants,DP,mechanism,distribution=[],infinite_chain=False,rep=None):
+	def __polymerizemechanism_thermoplastic(self,reactants,DP,mechanism,distribution=[],pm=0,infinite_chain=False,rep=None):
 		'''directs polymerization to correct method for mechanism'''
 
 		returnpoly = ''
@@ -396,8 +407,12 @@ class PolyMaker():
 			mechanism = polydata[1]
 
 		elif mechanism=='ester':
-
 			polydata = self.__poly_ester(reactants,DP,distribution,infinite_chain)
+			returnpoly = polydata[0]
+			mechanism = polydata[1]
+
+		elif mechanism=='ester_stereo':
+			polydata = self.__poly_ester_stereo(reactants, DP, pm, distribution, infinite_chain)
 			returnpoly = polydata[0]
 			mechanism = polydata[1]
 		
@@ -687,6 +702,259 @@ class PolyMaker():
 			poly='ERROR:Ester_ReactionFailed'
 
 		return poly, 'ester'
+
+	def __poly_ester_stereo(
+		self, reactants, DP=2, pm=0.5, distribution=[1], infinite_chain=False
+	):
+		"""performs condenstation reaction on dicarboxyl and  diols
+		A poly ester generator that incorporates stereochemistry. There are three polymer properties that are controlled:
+				(1) DP, degree of polymerization. Counts each monomer provided as a repeat unit (each adds 1 to DP)
+				(2) pm, which is the probability for meso addition. 0 = syndiotactic, 0.5 = atactic, 1 = isotactic
+				(3) the distribution of monomers in the polymer (fraction composition)
+
+		In order to properly construct the polyer, the inputs must follow the following conventions:
+				(1) reactants must be smiles in a tuple. Unique monomer order is determined by stripping stereochemistry
+						from monomers. For each monomer it is assumed that two provided monomers are the R and S enantiomers in that
+						order.
+				(2) pm must be a single value, which is applied to all monomers equally, or a list that corresponds to the
+						order of monomers in the reactants tuple.
+				(3) distribution must be a single value, which is applied to all monomers equally, or a list that
+						corresponds to the order of the monomers in the reactants tuple.
+
+		Example inputs, where monomer letters represent their SMILES representation.
+				(1) reacting one monomer, A, with two enantiomers, A(R) and A(S) in an isotactic fashion (pm=1).
+
+								reactants = (A(R), A(S))
+								pm = 1
+
+				(2) reacting two monomers: A, with two enantiomers, A(R) and A(S), and B, with two enatniomers,
+						B(R) and B(S), with A adding isotactically and B adding atactically, and a ratio of A:B of 80:20
+
+								reactants = (A(R), A(S), B(R), B(S))
+								pm = [1, 0.5]
+								distribution = [80, 20]
+
+				(3) reacting two monomers: A, with two enantiomers, A(R) and A(S) and B, with no enantiomers.
+						A is syndiotactic. A pm value must be supplied to every monomer, even if it can't display tacticity.
+						This can be done with either a list, or just using one pm value.
+
+								reactants = (A(R), A(S), B)
+								pm = 0
+
+		reactants: Tuple[str]
+				A tuple containing the reactant smiles
+		DP: int
+				Degree of polymerization. Each monomer added contributes to this value, by default 2
+		pm: Union[float, List[float]]
+				The probability for meso addition for the monomer sepcies. 0 = syndiotactic, 0.5 = atactic, 1 = isotactic.
+				Specifying one value sets the value for all monomers, by default 0.5
+		distribution: List[float]
+				The distribution for the monomer species in the resultant polymer. Specifying one value sets the value for
+				all monomers, by default [1]
+		infinite_chain: bool
+				Whether or not to use an infinite chain, by default False
+		"""
+		# Define helper functions
+		def replace_acidanhydrides(reactant):
+			mol = Chem.MolFromSmiles(reactant)
+			if (
+				len(
+					mol.GetSubstructMatches(
+						Chem.MolFromSmarts(self.smiles_req["acidanhydrides"])
+					)
+				)
+				> 0
+			):
+				reactant = self.__openacidanyhydride(reactant)
+			else:
+				pass
+			return reactant
+
+		def sample_by_pm(monomers, last_stereo):
+			"""Sample monomer to react based on pm values
+			monomers: df
+					Dataframe containing monomers to sample from
+
+			last_stereo: int
+					The stereochemistry of the last monomer
+			"""
+			# Select id of monomer to add
+			monomer_id = sample_monomer_id(distribution, ids=monomers.monomer_id.unique())
+
+			# Get any monomers that match
+			monomers = monomers[
+				(monomers.index != "polymer") & (monomers["monomer_id"] == monomer_id)
+			].reset_index(drop=False)
+
+			if last_stereo == 2:  # No stereochemistry, sample randomly
+				new_monomer = monomers.sample(1)
+			elif len(monomers) == 1:  # Only one monomer to select
+				new_monomer = monomers
+			else:
+				# Generate weights based on pm and get sample monomer
+				monomer_pm = pm[monomer_id]
+				if last_stereo == 0:
+					weights = [monomer_pm, 1 - monomer_pm]
+				else:
+					weights = [1 - monomer_pm, monomer_pm]
+
+				new_monomer = monomers.sample(1, weights=weights)
+
+			# Return new monomer SMILES and new stereo_id
+			return new_monomer.iloc[0]["index"], new_monomer.iloc[0]["stereo_id"]
+
+		def sample_monomer_id(distribution, ids=[]):
+			# Get a monomer ID from the distribution
+			# ids dictates which polymers to draw from, empty list indicates all
+			p_distribution = np.array(distribution)
+			ids = np.array(ids)
+
+			if len(ids) > 0:
+				p_distribution = p_distribution[ids]
+			else:
+				ids = range(len(distribution))
+
+			# normalize for the choice function
+			p_distribution = np.array(p_distribution, dtype=float)
+			p_distribution /= sum(p_distribution)
+
+			monomer_id = np.random.choice(ids, p=p_distribution)
+
+			return monomer_id
+
+		try:
+			# open acid anhydrides
+			reactants = pd.Series(reactants).apply(replace_acidanhydrides).tolist()
+
+			# Load reaction info and get functionalities
+			rxn_dict = self.reactions["ester"]
+			func_df = self.get_functionality(reactants)
+
+			# Assign each monomer a unique ID independent of stereochemistry to aid in sampling
+			func_df["nonstereo_smiles"] = func_df.index.map(
+				lambda s: s.replace("@", "").replace("\\", "")
+			)
+			func_df["monomer_id"] = func_df.groupby(
+				["nonstereo_smiles"], sort=False
+			).ngroup()
+			n_unique_monomers = max(func_df["monomer_id"]) + 1
+
+			# if distribution is wrong shape, make uniform
+			if len(distribution) != n_unique_monomers:
+				distribution = [1] * n_unique_monomers
+
+			# Verify pm is correct shape
+			if type(pm) != list:
+				pm = [pm] * n_unique_monomers
+			else:
+				assert len(pm) == len(reactants)
+
+			# Give each monomer a stereo ID, assumes R is first and S is second
+			# R = 0, S = 1, one monomer = 2
+			for monomer_id in set(func_df["monomer_id"]):
+				n_monomers = len(func_df[func_df["monomer_id"] == monomer_id])
+				assert n_monomers < 3  # Only allowing for 2 monomers currently
+				if n_monomers == 2:
+					func_df.loc[func_df["monomer_id"] == monomer_id, "stereo_id"] = [0, 1]
+				elif n_monomers == 1:
+					func_df.loc[func_df["monomer_id"] == monomer_id, "stereo_id"] = 2
+
+			func_df = func_df.drop(columns=["nonstereo_smiles"])
+
+			# Grab a random polymer from func_df based on the distribution and initialize poly entry in df
+			poly_df = func_df[
+				func_df["monomer_id"] == sample_monomer_id(distribution)
+			].sample(1)
+			molpoly = Chem.MolFromSmiles(poly_df.index[0])  # index is SMILES
+			poly_df.index.values[0] = "polymer"
+			func_df = pd.concat([func_df, poly_df])
+			last_stereo = poly_df["stereo_id"][0]
+
+			DP_count = 1
+			DP_actual = 1
+
+			while DP_count < DP:
+				# select rxn rule and reactant
+				if (func_df.loc["polymer", "aliphatic_ols"] >= 1) & (
+					func_df.loc["polymer", "acids"] >= 1
+				):
+					mask = ((func_df.acids >= 1) | (func_df.aliphatic_ols >= 1)) & (
+						func_df.index != "polymer"
+					)
+					func_df_select = func_df.loc[mask]
+					monomer, last_stereo = sample_by_pm(func_df_select, last_stereo)
+					if func_df.loc[monomer].aliphatic_ols >= 1:
+						rxn_selector = "diacids_ols"
+					if func_df.loc[monomer].acids >= 1:
+						rxn_selector = "diols_acids"
+
+				elif func_df.loc["polymer", "aliphatic_ols"] >= 2:
+					msk = (func_df.acids >= 1) & (func_df.index != "polymer")
+					func_df_select = func_df.loc[msk]
+					monomer, last_stereo = sample_by_pm(func_df_select, last_stereo)
+					rxn_selector = "diols_acids"
+
+				elif func_df.loc["polymer", "acids"] >= 2:
+					msk = (func_df.aliphatic_ols >= 1) & (func_df.index != "polymer")
+					func_df_select = func_df.loc[msk]
+					monomer, last_stereo = sample_by_pm(func_df_select, last_stereo)
+					rxn_selector = "diacids_ols"
+
+				else:
+					assert False
+
+				rxn = Chem.AllChem.ReactionFromSmarts(rxn_dict[rxn_selector])
+				# update func_df table
+				func_df.loc["polymer"] = (
+					func_df.loc["polymer"] + func_df.loc[monomer]
+				)  # adding polymer and a
+				for column_name in ["aliphatic_ols", "ols", "acids"]:
+					func_df.loc[
+						"polymer", column_name
+					] += -1  # substracting off functionality
+				assert (
+					func_df.loc["polymer"][func_df.loc["polymer"] > -1].shape
+					== func_df.loc["polymer"].shape
+				)
+
+				# React and select product
+				mola = Chem.MolFromSmiles(monomer)
+				prod = rxn.RunReactants((molpoly, mola))
+				prodlist = [Chem.MolToSmiles(x[0]) for x in prod]
+				prodlist = self.__returnvalid(prodlist)
+				poly = random.choice(prodlist)
+				molpoly = Chem.MolFromSmiles(poly)
+
+				# manage loop and ring close
+				if (infinite_chain) & (DP_count == DP - 1):
+					# logic for closing ring
+					if (func_df.loc["polymer", "aliphatic_ols"] > 0) & (
+						func_df.loc["polymer", "acids"]
+					) > 0:
+						# case for when has can ring close
+						DP_count += 1
+						DP_actual += 1
+					else:
+						# case for when has same terminal ends so can't ring close
+						DP_count = DP_count
+						DP_actual += 1
+				else:
+					DP_count += 1
+					DP_actual += 1
+
+			if infinite_chain:  # closes ring
+				rxn = Chem.AllChem.ReactionFromSmarts(rxn_dict["infinite_chain"])
+				prod = rxn.RunReactants((molpoly,))
+				prodlist = [Chem.MolToSmiles(x[0]) for x in prod]
+				prodlist = self.__returnvalid(prodlist)
+				poly = random.choice(prodlist)
+				molpoly = Chem.MolFromSmiles(poly)
+
+		except BaseException as e:
+			# print(e) # Can give reason why it fails?
+			poly = "ERROR:Ester_Stereo_ReactionFailed"
+
+		return poly, "ester_stereo"
 
 	def __poly_amide(self,reactants,DP=2, distribution = [],infinite_chain=False):
 		'''performs condenstation reaction on dicarboxyl and  diols'''
