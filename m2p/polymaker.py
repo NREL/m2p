@@ -275,15 +275,6 @@ class PolyMaker():
 			returnpoly_i.loc[:,'monomers'] = returnpoly_i.monomers.astype(str)
 			returnpoly = pd.concat([returnpoly,returnpoly_i])
 
-			row = returnpoly.iloc[0]
-			self.__polymerizemechanism_thermoplastic(
-						ast.literal_eval(row.monomers),
-						DP,
-						mechanism,
-						ast.literal_eval(row.distribution),
-						pm,
-						infinite_chain)
-
 		if verbose:
 			returnpoly[['polymer','mechanism']] = returnpoly.progress_apply(
 																			lambda row: 
