@@ -72,7 +72,7 @@ class PolyMaker():
 										'[#8:3]([#6:4](=[#8:5])(O))([#6:6](=[#8:7]))'}
 
 						}
-		self.__verison__ = '0.1.3.0'
+		self.__verison__ = '0.1.3.1'
 
 
 	def checksmile(self,s):
