@@ -72,7 +72,7 @@ class PolyMaker():
 										'[#8:3]([#6:4](=[#8:5])(O))([#6:6](=[#8:7]))'}
 
 						}
-		self.__verison__ = '0.1.2.1'
+		self.__verison__ = '0.1.3.0'
 
 	def checksmile(self,s):
 		'''checks to make sure monomer is readable by rdkit and 
@@ -225,7 +225,7 @@ class PolyMaker():
 
 		return returnpoly
 
-	def thermoplastic(self,reactants,DP=2,mechanism='',replicate_structures=1,distribution=[],pm=0,infinite_chain=False,verbose=True):
+	def thermoplastic(self,reactants,DP=2,mechanism='',replicate_structures=1,distribution=[],pm=None,infinite_chain=False,verbose=True):
 		'''Polymerization method for building thermoplastics
 
 		Inputs:
@@ -239,6 +239,7 @@ class PolyMaker():
 				
 				vinyl: performs polymerization along vinyl groups
 				ester: performs condensation reaction on dicarboxylic acid + diol
+				ester_stereo: performs condensation reaction on dicarboxylic acid + diol where stereoregulatirty is also specified
 				amide: performs condensation reaction on dicarboxylic acid + diamine
 				carbonate: performs condensation reaction on carbonate + diol
 			
@@ -250,6 +251,7 @@ class PolyMaker():
 		''' 
 
 		returnpoly = pd.DataFrame()
+
 		for rep in range(0,replicate_structures):
 			returnpoly_i = pd.DataFrame()
 
@@ -267,8 +269,13 @@ class PolyMaker():
 				returnpoly_i.loc[:,'distribution']=str(distribution)
 			elif type(reactants)==pd.DataFrame:
 				returnpoly_i = reactants
+							
 				if 'distribution' in returnpoly_i:returnpoly_i['distribution']=returnpoly_i['distribution'].astype(str)
 				else:returnpoly_i.loc[:,'distribution']=str(distribution)
+
+				if pm==None:pm=0.5
+				if 'pm' not in returnpoly_i:returnpoly_i['pm'] = pm
+
 			else:
 				raise ValueError('Data type not recognized')
 			returnpoly_i.loc[:,'replicate_structure']=rep
@@ -283,7 +290,7 @@ class PolyMaker():
 																					DP,
 																					mechanism,
 																					ast.literal_eval(row.distribution),
-																					pm,
+																					row.pm,
 																					infinite_chain),
 																			axis=1)
 		else:
@@ -294,7 +301,7 @@ class PolyMaker():
 																					DP,
 																					mechanism,
 																					ast.literal_eval(row.distribution),
-																					pm,
+																					row.pm,
 																					infinite_chain),
 																			axis=1)
 		returnpoly = returnpoly.sort_index().sort_values('replicate_structure')
@@ -325,26 +332,6 @@ class PolyMaker():
 		if len(distribution)==0:df_func['distribution'] = [1]*df_func.shape[0]
 		else:df_func['distribution'] = list(distribution)
 		return df_func
-
-#>>>Del
-	def returnvalid(self,prodlist):
-		'''verifies molecule is valid
-		
-		Input: list of strings
-		
-		Return: list of strings
-		'''
-		returnlist = []
-		rdBase.DisableLog('rdApp.error')
-		for x in prodlist:
-			try:
-				Chem.SanitizeMol(Chem.MolFromSmiles(x))
-				returnlist.append(x)
-			except:
-				 pass
-		rdBase.EnableLog('rdApp.error')
-		return returnlist
-#<<<Del
 
 	def __returnvalid(self,prodlist):
 		'''verifies molecule is valid
@@ -460,7 +447,7 @@ class PolyMaker():
 			returnpoly='ERROR_03:MechanismNotRecognized'
 
 		return pd.Series([returnpoly,mechanism])
-	#hide
+
 	def __poly_vinyl_init(self,mola,molb):
 		'''performs propagation rxn of vinyl polymer'''
 
@@ -472,7 +459,7 @@ class PolyMaker():
 		prodlist = [Chem.MolToSmiles(x[0]) for x in prod]
 		molprodlist = [Chem.MolFromSmiles(p) for p in self.__returnvalid(prodlist)]
 		return molprodlist
-	#hide
+
 	def __poly_vinyl_prop(self,mola,molb):
 		'''performs propagation rxn of vinyl polymer'''
 
@@ -484,7 +471,7 @@ class PolyMaker():
 		prodlist = [Chem.MolToSmiles(x[0]) for x in prod]
 		molprodlist = [Chem.MolFromSmiles(p) for p in self.__returnvalid(prodlist)]
 		return molprodlist
-	#hide
+
 	def __poly_vinyl_term(self,mola,molb,infinite_chain=False,single_rxn=False):
 		'''performs termination rxn of vinyl polymer'''
 
@@ -812,6 +799,7 @@ class PolyMaker():
 			monomer_id = np.random.choice(ids, p=p_distribution)
 
 			return monomer_id
+
 
 		try:
 			# open acid anhydrides
