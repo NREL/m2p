@@ -72,7 +72,8 @@ class PolyMaker():
 										'[#8:3]([#6:4](=[#8:5])(O))([#6:6](=[#8:7]))'}
 
 						}
-		self.__verison__ = '0.1.3.0'
+		self.__verison__ = '0.1.3.1'
+
 
 	def checksmile(self,s):
 		'''checks to make sure monomer is readable by rdkit and 
@@ -270,17 +271,34 @@ class PolyMaker():
 			elif type(reactants)==pd.DataFrame:
 				returnpoly_i = reactants
 							
-				if 'distribution' in returnpoly_i:returnpoly_i['distribution']=returnpoly_i['distribution'].astype(str)
-				else:returnpoly_i.loc[:,'distribution']=str(distribution)
-
-				if pm==None:pm=0.5
-				if 'pm' not in returnpoly_i:returnpoly_i['pm'] = pm
-
+				if 'distribution' in returnpoly_i:
+					returnpoly_i['distribution'] = returnpoly_i['distribution'].astype(str)
+				else:
+					returnpoly_i.loc[:,'distribution'] = str(distribution)	
+						
 			else:
 				raise ValueError('Data type not recognized')
 			returnpoly_i.loc[:,'replicate_structure']=rep
 			returnpoly_i.loc[:,'monomers'] = returnpoly_i.monomers.astype(str)
 			returnpoly = pd.concat([returnpoly,returnpoly_i])
+
+		# Ensure valid pm for df
+		if isinstance(pm, (float, int)):
+			if not (0 <= pm and pm <= 1):
+				warnings.warn(f"pm must be between 0 and 1, value of {pm} given. Setting pm to 0.5.")
+				pm = 0.5
+
+			# if valid user pm then use that for everything
+			returnpoly['pm'] = pm	
+		else:
+			pm = 0.5
+			if 'pm' not in returnpoly:
+				returnpoly['pm'] = pm
+			else:
+				# Ensure that all rows have numerical pm
+				returnpoly[~returnpoly["pm"].map(lambda i: isinstance(i, (int, float)))]["pm"] = pm
+				# Ensure that all rows have pm between 0 and 1
+				returnpoly[(0 <= returnpoly["pm"]) & (returnpoly["pm"] <= 1)]["pm"] = pm
 
 		if verbose:
 			returnpoly[['polymer','mechanism']] = returnpoly.progress_apply(

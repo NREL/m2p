@@ -78,3 +78,16 @@ def test_ester_stereo_a(RS_ester_reactants):
 
     assert len(poly_df) == 1
     assert 0 < pmeso and pmeso < 1
+
+
+def test_df_pm_ester_stereo(RS_ester_reactants):
+    RS_ester_reactants["pm"] = 1
+
+    poly_df = pm.thermoplastic(
+        RS_ester_reactants, DP=10, mechanism="ester_stereo", verbose=False
+    )
+    pmeso = calc_pm(poly_df["polymer"][0])
+    pmeso
+
+    assert len(poly_df) == 1
+    assert pmeso == 1
