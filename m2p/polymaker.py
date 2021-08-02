@@ -1,27 +1,25 @@
-import pandas as pd 
-import numpy as np
-import re
-import random
 import ast
-import warnings
 import itertools
+import random
+import re
 import time
-
-from rdkit import Chem, rdBase
-from rdkit.Chem import AllChem
-from rdkit import RDLogger
-from rdkit.Chem import Descriptors
-
+import warnings
 from ast import literal_eval as leval
 from copy import deepcopy
-from tqdm import tqdm
 
 import casadi as cas
-from casadi import SX,integrator,vertcat
+import numpy as np
+import pandas as pd
+from casadi import SX, integrator, vertcat
+from rdkit import Chem, RDLogger, rdBase
+from rdkit.Chem import AllChem, Descriptors
+from tqdm import tqdm
 
 tqdm.pandas()
 lg = RDLogger.logger()
 lg.setLevel(RDLogger.ERROR)
+
+from monomers import get_functionality
 
 
 class PolyMaker():
@@ -325,32 +323,6 @@ class PolyMaker():
 		returnpoly = returnpoly.sort_index().sort_values('replicate_structure')
 		return returnpoly
 
-	def get_functionality(self,reactants,distribution=[]):
-		'''gets the functional groups from a list of reactants
-
-		inputs: list of smiles
-		output: dataframe with count of functional groups
-		'''
-
-		def id_functionality(r):
-			mol = Chem.MolFromSmiles(r.name)
-			r.ols = 			len(mol.GetSubstructMatches(Chem.MolFromSmarts(self.smiles_req['ols'])))
-			r.aliphatic_ols = 	len(mol.GetSubstructMatches(Chem.MolFromSmarts(self.smiles_req['aliphatic_ols'])))
-			r.acids = 			len(mol.GetSubstructMatches(Chem.MolFromSmarts(self.smiles_req['acids'])))
-			r.prime_amines = 	len(mol.GetSubstructMatches(Chem.MolFromSmarts(self.smiles_req['prime_amines'])))
-			r.carbonates = 		len(mol.GetSubstructMatches(Chem.MolFromSmarts(self.smiles_req['carbonates'])))
-			r.acidanhydrides = 	len(mol.GetSubstructMatches(Chem.MolFromSmarts(self.smiles_req['acidanhydrides'])))
-			return r    
-
-		df_func = pd.DataFrame(data = 0,index=reactants,columns=['ols','acids','prime_amines','carbonates','aliphatic_ols','acidanhydrides'])
-		df_func = df_func.apply(lambda r: id_functionality(r),axis=1)
-
-		#appends distribution to dataframe
-
-		if len(distribution)==0:df_func['distribution'] = [1]*df_func.shape[0]
-		else:df_func['distribution'] = list(distribution)
-		return df_func
-
 	def __returnvalid(self,prodlist):
 		'''verifies molecule is valid
 		
@@ -622,7 +594,7 @@ class PolyMaker():
 
 
 			rxn_dic = self.reactions['ester']
-			df_func = self.get_functionality(reactants,distribution=distribution)
+			df_func = get_functionality(reactants,distribution=distribution)
 
 			#select initial monomer as polymer chain
 			df_poly = df_func.sample(1)
@@ -825,7 +797,7 @@ class PolyMaker():
 
 			# Load reaction info and get functionalities
 			rxn_dict = self.reactions["ester"]
-			func_df = self.get_functionality(reactants)
+			func_df = get_functionality(reactants)
 
 			# Assign each monomer a unique ID independent of stereochemistry to aid in sampling
 			func_df["nonstereo_smiles"] = func_df.index.map(
@@ -960,7 +932,7 @@ class PolyMaker():
 		try:
 			#	initial
 			rxn_dic = self.reactions['amide']
-			df_func = self.get_functionality(reactants,distribution=distribution)
+			df_func = get_functionality(reactants,distribution=distribution)
 
 			#select initial monomer as polymer chain
 			df_poly = df_func.sample(1)
@@ -1066,7 +1038,7 @@ class PolyMaker():
 			# initial
 			carbonyltype = choose_carbonyltype(reactants)
 			rxn_dic = self.reactions['carbonate'][carbonyltype]
-			df_func = self.get_functionality(reactants,distribution=distribution)
+			df_func = get_functionality(reactants,distribution=distribution)
 
 			#select initial monomer as polymer chain
 			df_poly = df_func.sample(1)
@@ -1160,7 +1132,7 @@ class PolyMaker():
 						'diamines_acidanhydrides':'[#6;!$(C=O):0][NH2:1].[#8:3]([#6:4](=[#8:5]))([#6:6](=[#8:7]))>>[#6:0][N:1]([#6:4](=[#8:5]))([#6:6](=[#8:7]))'}
 			
 			rxn_dic = self.reactions['imide']
-			df_func = self.get_functionality(reactants,distribution=distribution)
+			df_func = get_functionality(reactants,distribution=distribution)
 
 			#select initial monomer as polymer chain
 			df_poly = df_func.sample(1)
