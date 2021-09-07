@@ -299,10 +299,6 @@ class PolyMaker():
                         current_RS += 1
                     RS_list.append(RS[current_RS%2])
                 RS_replicates.append(RS_list)
-                
-                print(RS_list)
-                if (sum([i==j for i, j in zip(*(RS_list, RS_list[1:]))]) == 2):
-                    print(1)
 
             return RS_replicates
 
@@ -979,7 +975,6 @@ class PolyMaker():
             DP_actual = 1
 
             while DP_count<DP:
-                # print(df_func)
                 #select rxn rule and reactant
                 if (df_func.loc['polymer','ols']>=1)&(df_func.loc['polymer','carbonates']>=0.5):
                     msk =((df_func.ols>=1)|(df_func.carbonates>=0.5))&(df_func.index!='polymer')
