@@ -254,27 +254,29 @@ class PolyMaker():
         pd.DataFrame
             A dataframe containing the polymerized inputs
         """
-        def get_diads(n_structures, pm, use_bounds="both", max_iter=10**3):
-            # Generate the lists to be used for permutations
-            # lists are 0 and 1, 1 is meso, 0 is racemic
+        def get_RS_assignments(n_structures, pm):
+            """Generate a a list containing the R/S assignemnts for compounds. First calculates diads then converts to R/S."""
+            # Initiate info to generate a diad list
             n_diads = DP - 1
-            upper, lower = [int(ceil(n_diads*pm)), int(floor(n_diads*pm))]
+            lower, upper = [int(floor(n_diads*pm)), int(ceil(n_diads*pm))]
             diad_lists = [np.array([1]*lower + [0]*(n_diads-lower)), np.array([1]*upper + [0]*(n_diads-upper))]
+            
+            # Get weights of sampling so average pm (with infinite replicates) is equal to specified pm
+            if lower != upper:
+                r_weight = (n_diads*pm - lower/n_diads) / (upper - lower)
+                l_weight = 1 - r_weight
+                weights = [l_weight, r_weight]
+            else:
+                weights = [1, 1]
 
-            # Init some values for the loop
+            # Generate n_structures amount of diad lists
+            # Ideally unique, but only try a max iteration of 10^3
             i = 0
             replicates = []
+            max_iter=10**3
             while len(replicates) < n_structures:
-                # TODO use a weighted sampling?
-                if use_bounds == "both":
-                    bound = np.random.randint(2)
-                    diad_list = diad_lists[bound]
-                elif use_bounds == "lower":
-                    diad_list = diad_lists[0]
-                else:
-                    diad_list = diad_lists[1]
-
                 # Generate a random permutation and convert it into a string
+                diad_list = random.choices(diad_lists, weights)[0]
                 perm = tuple(np.random.permutation(diad_list))
                 perm_string = ''.join([f"{num}" for num in perm])
 
@@ -285,48 +287,70 @@ class PolyMaker():
 
                 i += 1
 
-            return replicates
+            # Convert to R/S with arbitrary starting stereo for first atom
+            RS = ["R", "S"]
+            RS_replicates = []
+            for diads in replicates:
+                current_RS = np.random.randint(0, 2)
+                RS_list = [RS[current_RS%2]]
 
-        def strip_smiles_stereochemistry(smiles):
-            # non stereo smiles, non duplicate smiles
-            smiles = [smi.replace("@", "") for i, smi in enumerate(smiles.split(".")) if i%2 == 0]
-            return ".".join(smiles)
+                for diad in diads:
+                    if diad == "0":
+                        current_RS += 1
+                    RS_list.append(RS[current_RS%2])
+                RS_replicates.append(RS_list)
+                
+                print(RS_list)
+                if (sum([i==j for i, j in zip(*(RS_list, RS_list[1:]))]) == 2):
+                    print(1)
 
-        def strip_monomers_stereochemistry(monomers):
-            # Get nonstereo smiles for each monomer
-            monomers = [monomer.replace("@", "") for i, monomer in enumerate(monomers) if i%2 == 0]
-            return monomers
+            return RS_replicates
 
-        def get_stereo_smiles_from_diads(diad_string, mol, chiral_centers):
-            mol = deepcopy(mol)
-            ccw = ChiralType.CHI_TETRAHEDRAL_CCW
-            cw = ChiralType.CHI_TETRAHEDRAL_CW
-            
-            # not strictly a chiral type for CIP, but for internal RDKit
-            chiral_type = [ccw, cw]
-            current_chirality = np.random.randint(2)
+        def get_stereo_smiles_from_CIP(RS_list, smi, chiral_centers):
+            """Assign stereochemistry from a list of CIP values."""
+            def get_incorrect_chirality(known_chirality, mol_chirality):
+                """Get the ids of incorrect atom chirality"""
+                incorrect_set = set(known_chirality.items()).symmetric_difference(mol_chirality)
+                incorrect_atom_set = set()
+                for mol_chirality in incorrect_set:
+                    incorrect_atom_set.add(mol_chirality[0])
+                return list(incorrect_atom_set)
 
-            # Issue with RDKit where first assigned is opposite. Assign first center and then increment chirality type
-            # TODO: look into this issue
-            mol.GetAtoms()[chiral_centers[0]].SetChiralTag(chiral_type[current_chirality])
-            # if diad_string[0] == "1":
-            current_chirality += 1
+            chiral_dict = {"R": ChiralType.CHI_TETRAHEDRAL_CCW, "S": ChiralType.CHI_TETRAHEDRAL_CW}
+            known_chirality = {key:val for key, val in zip(*(chiral_centers, RS_list))}
 
-            # Loop through the diad as well as the chiral centers and assign stereo
-            for i, diad in enumerate(diad_string):
-                if diad == "1":
-                    mol.GetAtoms()[chiral_centers[i+1]].SetChiralTag(chiral_type[current_chirality%2])
+            # Set values with R as CCW, S as CW. This isn't always true, but we fix later
+            # This assumes there is one pendant group, can fail
+            smi = Chem.CanonSmiles(smi)
+            mol = Chem.MolFromSmiles(smi)
+            atoms = mol.GetAtoms()
+            for atom_i, CIP_id in known_chirality.items():
+                atoms[atom_i].SetChiralTag(chiral_dict[CIP_id])
+            AllChem.AssignCIPLabels(mol)
+
+            # Identify any incorrect centers and flip them
+            current_chirality = AllChem.FindMolChiralCenters(mol, includeCIP=True)
+            incorrect_chirality = get_incorrect_chirality(known_chirality, current_chirality)
+            atoms = mol.GetAtoms()
+
+            for atom_i in incorrect_chirality:
+                current_chirality = atoms[atom_i].GetChiralTag()
+                if current_chirality == ChiralType.CHI_TETRAHEDRAL_CCW:
+                    atoms[atom_i].SetChiralTag(ChiralType.CHI_TETRAHEDRAL_CW)
                 else:
-                    current_chirality += 1
-                    mol.GetAtoms()[chiral_centers[i+1]].SetChiralTag(chiral_type[current_chirality%2])
+                    atoms[atom_i].SetChiralTag(ChiralType.CHI_TETRAHEDRAL_CCW)
 
-            smiles = AllChem.MolToSmiles(mol)
+            AllChem.AssignCIPLabels(mol)
 
-            return smiles
+            return Chem.MolToSmiles(mol)
 
         def generate_stereo_ester(smi, n_structures, pm):
-            """Generate stereo structures for duplicate smiles of a polyester."""
+            """
+            Generate stereo structures for duplicate smiles of a polyester.
+            This can fail when there are multiple stereo sites in a monomer backbone.
+            """
             # Get stereo centers first
+            smi = Chem.CanonSmiles(smi)
             mol = AllChem.MolFromSmiles(smi)
             acid = AllChem.MolFromSmarts("[C;$(C[OH]);$(C=O)]")
             ol = AllChem.MolFromSmarts("[C;$(C[OH]);!$(C=O)]")
@@ -342,10 +366,11 @@ class PolyMaker():
             chiral_centers = [center for center in chiral_centers if center in shortest_path]
 
             # Get diads for given pm
-            diads_list = get_diads(n_structures, pm)
-
-            smiles_list = [get_stereo_smiles_from_diads(diad_string, mol, chiral_centers) for diad_string in diads_list]
-
+            replicate_RS = get_RS_assignments(n_structures, pm)
+            smiles_list = []
+            for RS_list in replicate_RS:
+                smiles_list.append(get_stereo_smiles_from_CIP(RS_list, smi, chiral_centers))
+            
             return smiles_list
 
         # Ensure there is a Pm value, default is 1
@@ -355,8 +380,12 @@ class PolyMaker():
 
         # Don't want stereochemistry on the first pass for synthesis
         nostereo_df = reactants.copy()
-        nostereo_df.loc[:, "smiles"] = nostereo_df.smiles.map(strip_smiles_stereochemistry)
-        nostereo_df.loc[:, "monomers"] = nostereo_df.monomers.map(strip_monomers_stereochemistry)
+        nostereo_df.loc[:, "smiles"] = nostereo_df.smiles.map(
+            lambda smiles: ".".join([smi.replace("@", "") for i, smi in enumerate(smiles.split(".")) if i%2 == 0])
+        )
+        nostereo_df.loc[:, "monomers"] = nostereo_df.monomers.map(
+            lambda monomers: [monomer.replace("@", "") for i, monomer in enumerate(monomers) if i%2 == 0]
+        )
         poly_df = self.thermoplastic(
             nostereo_df, DP, mechanism, replicate_structures, distribution, False, verbose
         )
@@ -375,10 +404,9 @@ class PolyMaker():
             poly_df.loc[poly_df["index"] == row["index"], "smiles"] = row.smiles
             poly_df.loc[poly_df["index"] == row["index"], "monomers"] = str(row.monomers)
 
-        poly_df =poly_df.drop(columns=["index"])
+        poly_df = poly_df.drop(columns=["index"])
 
         return poly_df
-
 
     def thermoplastic(self,reactants,DP=2,mechanism='',replicate_structures=1,distribution=[],infinite_chain=False,verbose=True):
         '''Polymerization method for building thermoplastics
