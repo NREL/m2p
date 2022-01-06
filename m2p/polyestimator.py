@@ -1,22 +1,18 @@
-import pandas as pd
-import numpy as np
-import re
-import random
 import ast
-import warnings
 import itertools
+import random
+import re
 import time
-
-from rdkit import Chem, rdBase
-from rdkit.Chem import AllChem
-from rdkit import RDLogger
-from rdkit.Chem import Descriptors
-
+import warnings
 from copy import deepcopy
-from tqdm import tqdm
 
 import casadi as cas
+import numpy as np
+import pandas as pd
 from casadi import SX, integrator, vertcat
+from rdkit import Chem, RDLogger, rdBase
+from rdkit.Chem import AllChem, Descriptors
+from tqdm import tqdm
 
 from .polymaker import PolyMaker
 

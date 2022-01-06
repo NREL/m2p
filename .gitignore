@@ -8,3 +8,4 @@ figs_nopush/*
 data_nopush/*
 notebooks_nopush/*
 *ipynb
+.vscode

@@ -17,6 +17,7 @@ tqdm.pandas()
 lg = RDLogger.logger()
 lg.setLevel(RDLogger.ERROR)
 
+
 class PolyMaker:
     def __init__(self):
         self.smiles_req = {
@@ -102,7 +103,7 @@ class PolyMaker:
         return smi
 
     @staticmethod
-    def get_monomers(smi: str, stereochemistry: bool=False) -> List[str]:
+    def get_monomers(smi: str, stereochemistry: bool = False) -> List[str]:
         """Convert a string of monomers into a list of monomers.
 
         The input string must contain monomer SMILES seperated by ".". Each monomer is checked for validity.
@@ -135,7 +136,7 @@ class PolyMaker:
             monomers = smi
         else:
             monomers = None
-            
+
         return monomers
 
     def thermoset(
@@ -270,12 +271,12 @@ class PolyMaker:
     def thermoplastic_stereo(
         self,
         reactants: pd.DataFrame,
-        DP: int=2,
-        mechanism: str="",
-        replicate_structures: int=1,
-        distribution: Union[List[float], List]=[],
-        pm: float=1,
-        verbose: bool=True,
+        DP: int = 2,
+        mechanism: str = "",
+        replicate_structures: int = 1,
+        distribution: Union[List[float], List] = [],
+        pm: float = 1,
+        verbose: bool = True,
     ):
         """thermoplastic_stereo generates stereochemical structures using the non-stereo thermoplastic function
 
@@ -306,6 +307,7 @@ class PolyMaker:
         pd.DataFrame
             A dataframe containing the polymerized inputs
         """
+
         def get_RS_assignments(n_structures, pm):
             """Generate a a list containing the R/S assignemnts for compounds. First calculates diads then converts to R/S."""
             # Initiate info to generate a diad list
@@ -494,14 +496,17 @@ class PolyMaker:
             smiles = generate_stereo_ester(row.smiles_polymer, row.n_rows, row.pm)
             smiles_df = pd.DataFrame(data={"smiles_monomer": smiles})
             poly_df.loc[
-                (poly_df.smiles_polymer == row.smiles_polymer) & (poly_df.pm == row.pm), "smiles_polymer"
+                (poly_df.smiles_polymer == row.smiles_polymer) & (poly_df.pm == row.pm),
+                "smiles_polymer",
             ] = smiles_df.smiles_monomer.to_numpy()
 
         poly_df["index"] = poly_df.index
         reactants["index"] = reactants.index
 
         for _, row in reactants.iterrows():
-            poly_df.loc[poly_df["index"] == row["index"], "smiles_monomer"] = row.smiles_monomer
+            poly_df.loc[
+                poly_df["index"] == row["index"], "smiles_monomer"
+            ] = row.smiles_monomer
             poly_df.loc[poly_df["index"] == row["index"], "monomers"] = str(
                 row.monomers
             )
@@ -1023,7 +1028,8 @@ class PolyMaker:
 
             # Get any monomers that match
             monomers = monomers[
-                (monomers.index != "smiles_polymer") & (monomers["monomer_id"] == monomer_id)
+                (monomers.index != "smiles_polymer")
+                & (monomers["monomer_id"] == monomer_id)
             ].reset_index(drop=False)
 
             if last_stereo == 2:  # No stereochemistry, sample randomly
@@ -1138,7 +1144,9 @@ class PolyMaker:
                     rxn_selector = "diols_acids"
 
                 elif func_df.loc["smiles_polymer", "acids"] >= 2:
-                    msk = (func_df.aliphatic_ols >= 1) & (func_df.index != "smiles_polymer")
+                    msk = (func_df.aliphatic_ols >= 1) & (
+                        func_df.index != "smiles_polymer"
+                    )
                     func_df_select = func_df.loc[msk]
                     monomer, last_stereo = sample_by_pm(func_df_select, last_stereo)
                     rxn_selector = "diacids_ols"
@@ -1156,7 +1164,9 @@ class PolyMaker:
                         "smiles_polymer", column_name
                     ] += -1  # substracting off functionality
                 assert (
-                    func_df.loc["smiles_polymer"][func_df.loc["smiles_polymer"] > -1].shape
+                    func_df.loc["smiles_polymer"][
+                        func_df.loc["smiles_polymer"] > -1
+                    ].shape
                     == func_df.loc["smiles_polymer"].shape
                 )
 
@@ -1291,7 +1301,9 @@ class PolyMaker:
                     ).index.values[0]
                     rxn_selector = "diols_acids"
                 elif df_func.loc["smiles_polymer", "acids"] >= 2:
-                    msk = (df_func.aliphatic_ols >= 1) & (df_func.index != "smiles_polymer")
+                    msk = (df_func.aliphatic_ols >= 1) & (
+                        df_func.index != "smiles_polymer"
+                    )
                     df_func_select = df_func.loc[msk]
                     a = df_func_select.sample(
                         1, weights=df_func.distribution, replace=True
@@ -1310,7 +1322,9 @@ class PolyMaker:
                         "smiles_polymer", column_name
                     ] += -1  # substracting off functionality
                 assert (
-                    df_func.loc["smiles_polymer"][df_func.loc["smiles_polymer"] > -1].shape
+                    df_func.loc["smiles_polymer"][
+                        df_func.loc["smiles_polymer"] > -1
+                    ].shape
                     == df_func.loc["smiles_polymer"].shape
                 )
 
@@ -1395,7 +1409,9 @@ class PolyMaker:
                     ).index.values[0]
                     rxn_selector = "diamines_acids"
                 elif df_func.loc["smiles_polymer", "acids"] >= 2:
-                    msk = (df_func.prime_amines >= 1) & (df_func.index != "smiles_polymer")
+                    msk = (df_func.prime_amines >= 1) & (
+                        df_func.index != "smiles_polymer"
+                    )
                     df_func_select = df_func.loc[msk]
                     a = df_func_select.sample(
                         1, weights=df_func.distribution, replace=True
@@ -1413,7 +1429,9 @@ class PolyMaker:
                 for column_name in ["prime_amines", "acids"]:
                     df_func.loc["smiles_polymer", column_name] += -1
                 assert (
-                    df_func.loc["smiles_polymer"][df_func.loc["smiles_polymer"] > -1].shape
+                    df_func.loc["smiles_polymer"][
+                        df_func.loc["smiles_polymer"] > -1
+                    ].shape
                     == df_func.loc["smiles_polymer"].shape
                 )
 
@@ -1540,7 +1558,9 @@ class PolyMaker:
                     if np.all(df_func.loc[a].carbonates >= 0.5):
                         rxn_selector = "diols_carbonates"
                 elif df_func.loc["smiles_polymer", "ols"] >= 2:
-                    msk = (df_func.carbonates >= 0.5) & (df_func.index != "smiles_polymer")
+                    msk = (df_func.carbonates >= 0.5) & (
+                        df_func.index != "smiles_polymer"
+                    )
                     df_func_select = df_func.loc[msk]
                     a = df_func_select.sample(
                         1, weights=df_func.distribution, replace=True
@@ -1564,7 +1584,9 @@ class PolyMaker:
                 for column_name, adder in zip(["ols", "carbonates"], [-1, -0.5]):
                     df_func.loc["smiles_polymer", column_name] += adder
                 assert (
-                    df_func.loc["smiles_polymer"][df_func.loc["smiles_polymer"] > -1].shape
+                    df_func.loc["smiles_polymer"][
+                        df_func.loc["smiles_polymer"] > -1
+                    ].shape
                     == df_func.loc["smiles_polymer"].shape
                 )
 
@@ -1663,14 +1685,18 @@ class PolyMaker:
                     if np.all(df_func.loc[a].acidanhydrides >= 1):
                         rxn_selector = "diamines_acidanhydrides"
                 elif df_func.loc["smiles_polymer", "prime_amines"] >= 2:
-                    msk = (df_func.acidanhydrides >= 1) & (df_func.index != "smiles_polymer")
+                    msk = (df_func.acidanhydrides >= 1) & (
+                        df_func.index != "smiles_polymer"
+                    )
                     df_func_select = df_func.loc[msk]
                     a = df_func_select.sample(
                         1, weights=df_func.distribution, replace=True
                     ).index.values[0]
                     rxn_selector = "diamines_acidanhydrides"
                 elif df_func.loc["smiles_polymer", "acidanhydrides"] >= 2:
-                    msk = (df_func.prime_amines >= 1) & (df_func.index != "smiles_polymer")
+                    msk = (df_func.prime_amines >= 1) & (
+                        df_func.index != "smiles_polymer"
+                    )
                     df_func_select = df_func.loc[msk]
                     a = df_func_select.sample(
                         1, weights=df_func.distribution, replace=True
@@ -1689,7 +1715,9 @@ class PolyMaker:
                 ):
                     df_func.loc["smiles_polymer", column_name] += adder
                 assert (
-                    df_func.loc["smiles_polymer"][df_func.loc["smiles_polymer"] > -1].shape
+                    df_func.loc["smiles_polymer"][
+                        df_func.loc["smiles_polymer"] > -1
+                    ].shape
                     == df_func.loc["smiles_polymer"].shape
                 )
 

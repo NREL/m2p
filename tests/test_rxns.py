@@ -1,7 +1,8 @@
 import pandas as pd
 import pytest
-from m2p import PolyMaker
 from rdkit import Chem
+
+from m2p import PolyMaker
 
 pm = PolyMaker()
 
