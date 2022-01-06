@@ -8,4 +8,5 @@ figs_nopush/*
 data_nopush/*
 notebooks_nopush/*
 *ipynb
+*/__pycache__
 .vscode

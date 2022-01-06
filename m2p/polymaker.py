@@ -1,6 +1,7 @@
 import ast
 import itertools
 import random
+
 from ast import literal_eval as leval
 from copy import deepcopy
 from typing import List, Union
@@ -11,11 +12,14 @@ from casadi.casadi import ceil, floor
 from rdkit import Chem, RDLogger, rdBase
 from rdkit.Chem import AllChem, Descriptors
 from rdkit.Chem.rdchem import ChiralType
+
 from tqdm import tqdm
 
 tqdm.pandas()
 lg = RDLogger.logger()
 lg.setLevel(RDLogger.ERROR)
+
+from monomers import get_functionality
 
 
 class PolyMaker:
