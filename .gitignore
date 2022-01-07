@@ -10,4 +10,3 @@ dist/*
 .vscode
 build/*
 
-build/lib/m2p/__init__.py
