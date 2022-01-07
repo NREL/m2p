@@ -8,3 +8,6 @@ dist/*
 *ipynb
 */__pycache__
 .vscode
+build/*
+
+build/lib/m2p/__init__.py

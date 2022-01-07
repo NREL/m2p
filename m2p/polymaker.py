@@ -20,9 +20,6 @@ lg = RDLogger.logger()
 # lg.setLevel(RDLogger.ERROR)
 lg.setLevel(4)
 
-from monomers import get_functionality
-
-
 class PolyMaker:
     def __init__(self):
         self.smiles_req = {
