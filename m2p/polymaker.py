@@ -670,8 +670,8 @@ class PolyMaker:
             df_func["distribution"] = list(distribution)
         return df_func
 
-    def __returnvalid(self, prodlist):
-        """verifies molecule is valid
+    def _returnvalid(self, prodlist):
+        """verifies list of molecule smiles is valid
         
         Input: list of strings
         
@@ -810,7 +810,7 @@ class PolyMaker:
         # product creation and validation
         prod = rxn.RunReactants((mola, molb))
         prodlist = [Chem.MolToSmiles(x[0]) for x in prod]
-        molprodlist = [Chem.MolFromSmiles(p) for p in self.__returnvalid(prodlist)]
+        molprodlist = [Chem.MolFromSmiles(p) for p in self._returnvalid(prodlist)]
         return molprodlist
 
     def __poly_vinyl_prop(self, mola, molb):
@@ -824,7 +824,7 @@ class PolyMaker:
         # product creation and validation
         prod = rxn.RunReactants((mola, molb))
         prodlist = [Chem.MolToSmiles(x[0]) for x in prod]
-        molprodlist = [Chem.MolFromSmiles(p) for p in self.__returnvalid(prodlist)]
+        molprodlist = [Chem.MolFromSmiles(p) for p in self._returnvalid(prodlist)]
         return molprodlist
 
     def __poly_vinyl_term(self, mola, molb, infinite_chain=False, single_rxn=False):
@@ -865,7 +865,7 @@ class PolyMaker:
         # preps for return
         prod = list(itertools.chain(*prod))
         prodlist = [Chem.MolToSmiles(p) for p in prod]
-        molprodlist = [Chem.MolFromSmiles(p) for p in self.__returnvalid(prodlist)]
+        molprodlist = [Chem.MolFromSmiles(p) for p in self._returnvalid(prodlist)]
         return molprodlist
 
     def __poly_vinyl(
@@ -1178,7 +1178,7 @@ class PolyMaker:
                 mola = Chem.MolFromSmiles(monomer)
                 prod = rxn.RunReactants((molpoly, mola))
                 prodlist = [Chem.MolToSmiles(x[0]) for x in prod]
-                prodlist = self.__returnvalid(prodlist)
+                prodlist = self._returnvalid(prodlist)
                 poly = random.choice(prodlist)
                 molpoly = Chem.MolFromSmiles(poly)
 
@@ -1203,7 +1203,7 @@ class PolyMaker:
                 rxn = Chem.AllChem.ReactionFromSmarts(rxn_dict["infinite_chain"])
                 prod = rxn.RunReactants((molpoly,))
                 prodlist = [Chem.MolToSmiles(x[0]) for x in prod]
-                prodlist = self.__returnvalid(prodlist)
+                prodlist = self._returnvalid(prodlist)
                 poly = random.choice(prodlist)
                 molpoly = Chem.MolFromSmiles(poly)
 
@@ -1336,7 +1336,7 @@ class PolyMaker:
                 mola = Chem.MolFromSmiles(a)
                 prod = rxn.RunReactants((molpoly, mola))
                 prodlist = [Chem.MolToSmiles(x[0]) for x in prod]
-                prodlist = self.__returnvalid(prodlist)
+                prodlist = self._returnvalid(prodlist)
                 poly = random.choice(prodlist)
                 molpoly = Chem.MolFromSmiles(poly)
 
@@ -1361,7 +1361,7 @@ class PolyMaker:
                 rxn = Chem.AllChem.ReactionFromSmarts(rxn_dic["infinite_chain"])
                 prod = rxn.RunReactants((molpoly,))
                 prodlist = [Chem.MolToSmiles(x[0]) for x in prod]
-                prodlist = self.__returnvalid(prodlist)
+                prodlist = self._returnvalid(prodlist)
                 poly = random.choice(prodlist)
                 molpoly = Chem.MolFromSmiles(poly)
 
@@ -1443,7 +1443,7 @@ class PolyMaker:
                 mola = Chem.MolFromSmiles(a)
                 prod = rxn.RunReactants((molpoly, mola))
                 prodlist = [Chem.MolToSmiles(x[0]) for x in prod]
-                prodlist = self.__returnvalid(prodlist)
+                prodlist = self._returnvalid(prodlist)
                 poly = random.choice(prodlist)
                 molpoly = Chem.MolFromSmiles(poly)
 
@@ -1469,7 +1469,7 @@ class PolyMaker:
                 rxn = Chem.AllChem.ReactionFromSmarts(rxn_dic["infinite_chain"])
                 prod = rxn.RunReactants((molpoly,))
                 prodlist = [Chem.MolToSmiles(x[0]) for x in prod]
-                prodlist = self.__returnvalid(prodlist)
+                prodlist = self._returnvalid(prodlist)
                 poly = random.choice(prodlist)
                 molpoly = Chem.MolFromSmiles(poly)
 
@@ -1610,7 +1610,7 @@ class PolyMaker:
                     ) / 2
                 prods = rxn.RunReactants((molpoly, mola))
                 allprodlist = [Chem.MolToSmiles(x[0]) for x in prods]
-                prodlist = pd.Series(self.__returnvalid(allprodlist)).unique().tolist()
+                prodlist = pd.Series(self._returnvalid(allprodlist)).unique().tolist()
                 prodlist = get_prods_matching_mw(molpoly, mola, prodlist, leavegroup_MW)
                 poly = random.choice(prodlist)
                 molpoly = Chem.MolFromSmiles(poly)
@@ -1637,7 +1637,7 @@ class PolyMaker:
                 rxn = Chem.AllChem.ReactionFromSmarts(rxn_dic["infinite_chain"])
                 prod = rxn.RunReactants((molpoly,))
                 prodlist = [Chem.MolToSmiles(x[0]) for x in prod]
-                prodlist = self.__returnvalid(prodlist)
+                prodlist = self._returnvalid(prodlist)
                 prodlist = get_prods_matching_mw(
                     molpoly, mola, prodlist, leavegroup_MW, infinite_chain=True
                 )
@@ -1729,7 +1729,7 @@ class PolyMaker:
                 mola = Chem.MolFromSmiles(a)
                 prod = rxn.RunReactants((molpoly, mola))
                 prodlist = [Chem.MolToSmiles(x[0]) for x in prod]
-                prodlist = self.__returnvalid(prodlist)
+                prodlist = self._returnvalid(prodlist)
                 poly = random.choice(prodlist)
                 molpoly = Chem.MolFromSmiles(poly)
 
@@ -1754,7 +1754,7 @@ class PolyMaker:
                 rxn = Chem.AllChem.ReactionFromSmarts(rxn_dic["infinite_chain"])
                 prod = rxn.RunReactants((molpoly,))
                 prodlist = [Chem.MolToSmiles(x[0]) for x in prod]
-                prodlist = self.__returnvalid(prodlist)
+                prodlist = self._returnvalid(prodlist)
                 poly = random.choice(prodlist)
                 molpoly = Chem.MolFromSmiles(poly)
 
