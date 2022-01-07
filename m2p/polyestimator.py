@@ -43,36 +43,36 @@ class PolyEstimator:
         self, chain, crosslinkers, mols_chain, mols_crosslinkers, mechanism
     ):
         """
-		Gets the initial parameters of the system to feed into the crosslink density estimator
-		
-		inputs:
-			chain:
-				description: A smiles string of all monomers used as the backbone of the thermoset.
-				type: string
-				example: 'OC(=O)C=CC(=O)O.OC(=O)CCC(O)=O.OCCCO'
-			crosslinker:
-				description: A smiles string of all monomers used in the crosslinks of the thermoset.
-				type: string
-				example: 'C=Cc1ccccc1'
-			mols_chain:
-				description: A list of floats containing the number of mols used in the polymerization of the backbone of the thermoset
-				type: list
-				example: [10, 40.5, 50.5]
-			mols_crosslinkers:
-				description: A list of floats containing the number of mols used in the polymerization of the crosslinks of the thermoset
-				type: list
-				example: [10]
-			mechansim:            
-				description: a description from list of options below to identify the mechanisms involved with making the thermoset
-				type: string
-				example: 'UPE'
-				options:
-					UPE: unsaturate polyesters
-		
-		returns: dictionary
-		
-				
-		"""
+        Gets the initial parameters of the system to feed into the crosslink density estimator
+
+        inputs:
+                chain:
+                        description: A smiles string of all monomers used as the backbone of the thermoset.
+                        type: string
+                        example: 'OC(=O)C=CC(=O)O.OC(=O)CCC(O)=O.OCCCO'
+                crosslinker:
+                        description: A smiles string of all monomers used in the crosslinks of the thermoset.
+                        type: string
+                        example: 'C=Cc1ccccc1'
+                mols_chain:
+                        description: A list of floats containing the number of mols used in the polymerization of the backbone of the thermoset
+                        type: list
+                        example: [10, 40.5, 50.5]
+                mols_crosslinkers:
+                        description: A list of floats containing the number of mols used in the polymerization of the crosslinks of the thermoset
+                        type: list
+                        example: [10]
+                mechansim:
+                        description: a description from list of options below to identify the mechanisms involved with making the thermoset
+                        type: string
+                        example: 'UPE'
+                        options:
+                                UPE: unsaturate polyesters
+
+        returns: dictionary
+
+
+        """
         # get smiles
         smiles_chain = self.pm.get_monomers(chain)
         smiles_crosslinkers = self.pm.get_monomers(crosslinkers)
