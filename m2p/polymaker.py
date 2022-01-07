@@ -17,7 +17,8 @@ from tqdm import tqdm
 
 tqdm.pandas()
 lg = RDLogger.logger()
-lg.setLevel(RDLogger.ERROR)
+# lg.setLevel(RDLogger.ERROR)
+lg.setLevel(4)
 
 from monomers import get_functionality
 
@@ -30,6 +31,7 @@ class PolyMaker:
             "acids": "[#6][#6](=[#8:4])([F,Cl,Br,I,#8H,O-])",
             "prime_amines": "[#6;!$(C=O)][NH2;!$([NH2+])]",
             "carbonates": "[O]=[C]([F,Cl,Br,I,O])([F,Cl,Br,I,O])",
+            "cyclic_carbonates": "[O]=[C]1[O][C][C][O]1",
             "acidanhydrides": "[#8]([#6](=[#8]))([#6](=[#8]))",
             "prime_thiols": "[#6;!$(C=O)][SH]",
         }
@@ -79,6 +81,13 @@ class PolyMaker:
             "open_acidanhydrides": {
                 "add_OH": "[#8:3]([#6:4](=[#8:5]))([#6:6](=[#8:7]))>>"
                 "[#8:3]([#6:4](=[#8:5])(O))([#6:6](=[#8:7]))"
+            },
+            "NIPU": {
+                "dicycliccarbonates_amine": "[O:0]=[C:1]1[O:2][C:3][C:4][O:5]1.[NH2;!$([NH2+]):6][#6;!$(C=O):7]>>"
+                "[C:7][NH:6][C:1](=[O:0])[O:2][C:3][C:4][O:5]",
+                "diamine_cycliccarbonate": "[NH2;!$([NH2+]):6][#6;!$(C=O):7].[O:0]=[C:1]1[O:2][C:3][C:4][O:5]1>>"
+                "[C:7][NH:6][C:1](=[O:0])[O:2][C:3][C:4][O:5]",
+                "infinite_chaine": "to complete",
             },
         }
         self.__verison__ = "0.1.3.2"
@@ -134,7 +143,9 @@ class PolyMaker:
             if not stereochemistry:
                 smi = [smi_i.replace("/", "").replace("@", "") for smi_i in smi]
             monomers = tuple([PolyMaker.checksmile(smi_i) for smi_i in smi])
-            if np.any(np.array(monomers) == "",):
+            if np.any(
+                np.array(monomers) == "",
+            ):
                 monomers == None
         elif type(smi) == tuple:
             monomers = smi
@@ -153,9 +164,9 @@ class PolyMaker:
         replicate_structures=1,
         verbose=True,
     ):
-        """ Inputs:
+        """Inputs:
             reactants: contains smiles strings for reactants used in the polymer for both backbone and crosslinks
-                a tuple 
+                a tuple
                 or a strings of monomers
                 or a pandas dataframe containing a list of monomers as strings with column title 'monomers'
 
@@ -163,12 +174,12 @@ class PolyMaker:
                 each value will correspond to the mononmers in reactants
                 0's will indicate the corresponding monomer is part of the backbone
                 1's will indicate the corresponding monomer is part of the crosslink
-                
+
                 a list of integers
                 or a column in dataframe that is named 'crosslinker'
 
                 example: [0,0,0,1]
-            
+
             distribution: number of mols for each monomer in the reaction. values should be in samer order as reactancts
                 list of floats
                 or column in dataframe that is named 'mols'
@@ -177,19 +188,19 @@ class PolyMaker:
 
             DP:  degree of polymerization which is the number of monomer units in the polymer
                 an integer, if an integer the same DP will be used for the backbone and the crosslinks
-                a tuple, will contain only 2 values, the first value will be for the backbone and the second 
+                a tuple, will contain only 2 values, the first value will be for the backbone and the second
                     for the crosslinks
-        
-            mechanism: one of the following strings, 		
+
+            mechanism: one of the following strings,
                 upe: unsaturated polyester, backbone will be a polyester with unsaturated bonds, crosslinks will be vinyls, olefins, acrylates
 
             replicate_structures: integer, number of replicate structures which will be generated
 
-        
+
         Returns:
             polymer: string
-            
-        # """
+
+        #"""
 
         returnpoly = pd.DataFrame()
 
@@ -428,7 +439,11 @@ class PolyMaker:
 
             # Get backbone and backbone chiral sites
             shortest_path = set(
-                AllChem.rdmolops.GetShortestPath(mol, ol_atoms[0][0], acid_atoms[0][0],)
+                AllChem.rdmolops.GetShortestPath(
+                    mol,
+                    ol_atoms[0][0],
+                    acid_atoms[0][0],
+                )
             )
             chiral_centers = [
                 center for center in chiral_centers if center in shortest_path
@@ -529,26 +544,32 @@ class PolyMaker:
         infinite_chain=False,
         verbose=True,
     ):
-        """Polymerization method for building thermoplastics
 
-        Inputs:
-            reactants: a tuple 
-                       or a strings of monomers
-                       or a pandas dataframe containing a list of monomers as strings with column title monomers
-            
-            DP: integer, degree of polymerization which is the number of monomer units in the polymer
-            
-            mechanism: string, 
-                
-                vinyl: performs polymerization along vinyl groups
-                ester: performs condensation reaction on dicarboxylic acid + diol
-                carbonate: performs condensation reaction on carbonate + diol
-            
-            replicate_structures: integer, number of replicate structures which will be generated
-        
-        Returns:
-            polymer: dataframe
-            
+        """Polymerization method for building thermoplastics structures
+
+        Parameters
+        ----------
+        reactants: a tuple
+                   or a strings of monomers
+                   a pandas dataframe containing a column titled "monomers" (generated by get_monomers)
+                   optional column "distribution" containing list of molar ratio that maps to monomers in "monomers" column
+                   optional column mechanism containing desired mechanism to use for the row
+
+        DP: int, optional,
+            Degree of polymerization, by default 2
+
+        mechanism: string,
+            vinyl: performs polymerization along vinyl groups
+            ester: performs condensation reaction on dicarboxylic acid + diol
+            carbonate: performs condensation reaction on carbonate + diol
+
+        replicate_structures: integer, optional
+            number of replicate structures which will be generated
+
+        Returns
+        -------
+            A dataframe containing the polymerized inputs in column titled "smiles_polymer"
+
         """
         returnpoly = pd.DataFrame()
 
@@ -646,6 +667,11 @@ class PolyMaker:
                     Chem.MolFromSmarts(self.smiles_req["acidanhydrides"])
                 )
             )
+            r.cyclic_carbonates = len(
+                mol.GetSubstructMatches(
+                    Chem.MolFromSmarts(self.smiles_req["cyclic_carbonates"])
+                )
+            )
             return r
 
         df_func = pd.DataFrame(
@@ -658,6 +684,7 @@ class PolyMaker:
                 "carbonates",
                 "aliphatic_ols",
                 "acidanhydrides",
+                "cyclic_carbonates",
             ],
         )
         df_func = df_func.apply(lambda r: id_functionality(r), axis=1)
@@ -672,9 +699,9 @@ class PolyMaker:
 
     def _returnvalid(self, prodlist):
         """verifies list of molecule smiles is valid
-        
+
         Input: list of strings
-        
+
         Return: list of strings
         """
         returnlist = []
@@ -749,6 +776,11 @@ class PolyMaker:
             returnpoly = polydata[0]
             mechanism = polydata[1]
 
+        elif mechanism == "NIPU":
+            polydata = self.__poly_NIPU(reactants, DP, distribution, infinite_chain)
+            returnpoly = polydata[0]
+            mechanism = polydata[1]
+
         elif mechanism == "all":
             polylist = [
                 self.__poly_vinyl(reactants, DP, distribution, infinite_chain),
@@ -756,6 +788,7 @@ class PolyMaker:
                 self.__poly_amide(reactants, DP, distribution, infinite_chain),
                 self.__poly_carbonate(reactants, DP, distribution, infinite_chain),
                 self.__poly_imide(reactants, DP, distribution, infinite_chain),
+                self.__poly_NIPU(reactants, DP, distribution, infinite_chain),
             ]
 
             polylist = [
@@ -768,6 +801,7 @@ class PolyMaker:
                     "ERROR:Amide_ReactionFailed",
                     "ERROR:Carbonate_ReactionFailed",
                     "ERROR:Imide_ReactionFailed",
+                    "ERROR:NIPU_ReactionFailed",
                     "",
                 ]
             ]
@@ -871,7 +905,7 @@ class PolyMaker:
     def __poly_vinyl(
         self, reactants, DP=3, distribution=[], infinite_chain=False, crosslink=False
     ):
-        """ performs vinyl polymerization"""
+        """performs vinyl polymerization"""
         try:
 
             if len(distribution) == 0:
@@ -1214,8 +1248,8 @@ class PolyMaker:
         return poly, "ester_stereo"
 
     def __protect_substructure(self, mol, substructure, n_unprotected=0):
-        """ protects atoms in the group identified
-        
+        """protects atoms in the group identified
+
         mol: rdkit mol object
         substructure: SMARTS string to match to
         n_uprotected: number of substructures that will not be protected"""
@@ -1655,11 +1689,6 @@ class PolyMaker:
         try:
 
             # initial
-            rxn_dic = {
-                "diacidanhydrides_amines": "[#8:3]([#6:4](=[#8:5]))([#6:6](=[#8:7])).[#6;!$(C=O):0][NH2:1]>>[#6:0][N:1]([#6:4](=[#8:5]))([#6:6](=[#8:7]))",
-                "diamines_acidanhydrides": "[#6;!$(C=O):0][NH2:1].[#8:3]([#6:4](=[#8:5]))([#6:6](=[#8:7]))>>[#6:0][N:1]([#6:4](=[#8:5]))([#6:6](=[#8:7]))",
-            }
-
             rxn_dic = self.reactions["imide"]
             df_func = self.get_functionality(reactants, distribution=distribution)
 
@@ -1762,12 +1791,121 @@ class PolyMaker:
             poly = "ERROR:Imide_ReactionFailed"
         return poly, "imide"
 
+    def __poly_NIPU(self, reactants, DP=2, distribution=[], infinite_chain=False):
+        """performs condenstation reaction on dicarboxyl and  diols"""
+        # function
+
+        try:
+            # initial
+            rxn_dic = self.reactions["NIPU"]
+            df_func = self.get_functionality(reactants, distribution=distribution)
+
+            # select initial monomer as polymer chain
+            df_poly = df_func.sample(1)
+            df_func.loc["smiles_polymer"] = df_poly.sample(1).values[0]
+            poly = df_poly.index[0]
+            molpoly = Chem.MolFromSmiles(poly)
+
+            DP_count = 1
+            DP_actual = 1
+
+            while DP_count < DP:
+
+                # select rxn rule and reactant
+                if (df_func.loc["smiles_polymer", "prime_amines"] >= 1) & (
+                    df_func.loc["smiles_polymer", "cyclic_carbonates"] >= 1
+                ):
+                    msk = (
+                        (df_func.cyclic_carbonates >= 1) | (df_func.prime_amines >= 1)
+                    ) & (df_func.index != "smiles_polymer")
+                    df_func_select = df_func.loc[msk]
+                    a = df_func_select.sample(
+                        1, weights=df_func.distribution, replace=True
+                    ).index.values[0]
+                    if df_func.loc[a].prime_amines >= 1:
+                        rxn_selector = "dicycliccarbonates_amine"
+                    if df_func.loc[a].cyclic_carbonates >= 1:
+                        rxn_selector = "diamine_cycliccarbonate"
+                elif df_func.loc["smiles_polymer", "prime_amines"] >= 2:
+                    msk = (df_func.cyclic_carbonates >= 1) & (
+                        df_func.index != "smiles_polymer"
+                    )
+                    df_func_select = df_func.loc[msk]
+                    a = df_func_select.sample(
+                        1, weights=df_func.distribution, replace=True
+                    ).index.values[0]
+                    rxn_selector = "diamine_cycliccarbonate"
+                elif df_func.loc["smiles_polymer", "cyclic_carbonates"] >= 2:
+                    msk = (df_func.prime_amines >= 1) & (
+                        df_func.index != "smiles_polymer"
+                    )
+                    df_func_select = df_func.loc[msk]
+                    a = df_func_select.sample(
+                        1, weights=df_func.distribution, replace=True
+                    ).index.values[0]
+                    rxn_selector = "dicycliccarbonates_amine"
+                else:
+                    assert False
+
+                rxn = Chem.AllChem.ReactionFromSmarts(rxn_dic[rxn_selector])
+
+                # update df_func table
+                df_func.loc["smiles_polymer"] = (
+                    df_func.loc["smiles_polymer"] + df_func.loc[a]
+                )  # adding polymer and a
+                for column_name in ["prime_amines", "cyclic_carbonates"]:
+                    df_func.loc["smiles_polymer", column_name] += -1
+                assert (
+                    df_func.loc["smiles_polymer"][
+                        df_func.loc["smiles_polymer"] > -1
+                    ].shape
+                    == df_func.loc["smiles_polymer"].shape
+                )
+
+                # React and select product
+                mola = Chem.MolFromSmiles(a)
+                prod = rxn.RunReactants((molpoly, mola))
+                prodlist = [Chem.MolToSmiles(x[0]) for x in prod]
+                prodlist = self._returnvalid(prodlist)
+                poly = random.choice(prodlist)
+                molpoly = Chem.MolFromSmiles(poly)
+
+                # manage loop and ring close
+                if (infinite_chain) & (DP_count == DP - 1):
+                    # logic for closing ring
+                    if (df_func.loc["smiles_polymer", "prime_amines"] > 0) & (
+                        df_func.loc["smiles_polymer", "cyclic_carbonates"]
+                    ) > 0:
+                        # case for when can ring close
+                        DP_count += 1
+                        DP_actual += 1
+                    else:
+                        # case for when has same terminal ends so can't ring close
+                        DP_count = DP_count
+                        DP_actual += 1
+                else:
+                    DP_count += 1
+                    DP_actual += 1
+
+            if infinite_chain:  # closes ring
+
+                rxn = Chem.AllChem.ReactionFromSmarts(rxn_dic["infinite_chain"])
+                prod = rxn.RunReactants((molpoly,))
+                prodlist = [Chem.MolToSmiles(x[0]) for x in prod]
+                prodlist = self._returnvalid(prodlist)
+                poly = random.choice(prodlist)
+                molpoly = Chem.MolFromSmiles(poly)
+        except:
+            poly = "ERROR:NIPU_ReactionFailed"
+
+        return poly, "NIPU"
+
     def __poly_upe(self, reactants, crosslinker, distribution, DP):
-        """ generates 2 ringed thermoset
-            reactants: list of smiles
-            crosslinker: boolean list indicating which reactants are in the ring structure and which are in the crosslink
-            mols: number of mols in reaction, this is not just the molar ratio and should be actual mols
-            DP: integer, degree of polymerization
+        """generates 2 ringed thermoset
+        reactants: list of smiles
+        crosslinker: boolean list indicating which reactants are in the ring structure and which are in the crosslink
+        mols: number of mols in reaction, this is not just the molar ratio and should be actual mols
+        DP: integer, degree of polymerization
         """
         # getting distributed reactants and parsing monomers
         reactants = np.array(reactants)
@@ -1845,7 +1983,7 @@ class PolyMaker:
 
         return poly, "UPE"
 
-    def __openacidanyhydride(self, reactant):
+    def _openacidanyhydride(self, reactant):
 
         rxn = Chem.AllChem.ReactionFromSmarts(
             self.reactions["open_acidanhydrides"]["add_OH"]
