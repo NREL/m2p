@@ -3,9 +3,8 @@
 from typing import Tuple, Union
 
 import pandas as pd
-from rdkit import Chem
+from rdkit import Chem, rdBase
 from rdkit.Chem.Descriptors import ExactMolWt
-from rdkit import rdBase
 from rdkit.Chem.rdchem import Mol
 
 functionality_smarts = {

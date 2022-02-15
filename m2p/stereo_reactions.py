@@ -1,3 +1,4 @@
+"""Functions to generate """
 import ast
 from random import choices
 from typing import List, Union
@@ -48,7 +49,7 @@ def polyvinyl_stereo(
         prop_dict = get_vinyl_prop_dict(reactants)
         init_dict = get_vinyl_init_dict(reactants)
 
-        for CIPs in CIP_assignments:         
+        for CIPs in CIP_assignments:
             poly_id = choices(poly_ids, distribution)[0]
             poly = init_dict[poly_id][CIPs[0]]
             for CIP in CIPs[1:]:
@@ -58,7 +59,7 @@ def polyvinyl_stereo(
             poly = vinyl_terminate_stereo(poly)
 
             poly_list.append(AllChem.MolToSmiles(poly))
-            
+
         return_poly = pd.DataFrame(data=poly_list, columns=["smiles_polymer"])
 
     except BaseException as e:
@@ -96,20 +97,22 @@ def get_vinyl_prop_dict(smiles_list):
                 ]
             )
 
-        enantiomer_dict[i] = {
-            "R": products[0],
-            "S": products[1]
-        }
+        enantiomer_dict[i] = {"R": products[0], "S": products[1]}
 
     return enantiomer_dict
+
 
 def get_vinyl_init_dict(smi):
     enantiomer_dict = get_vinyl_prop_dict(smi)
     make_terminal = AllChem.ReactionFromSmarts("[Kr][C:1]>>[Hg][C:1]")
 
     for key in enantiomer_dict:
-        enantiomer_dict[key]["R"] = make_terminal.RunReactants((enantiomer_dict[key]["R"],))[0][0]
-        enantiomer_dict[key]["S"] = make_terminal.RunReactants((enantiomer_dict[key]["S"],))[0][0]
+        enantiomer_dict[key]["R"] = make_terminal.RunReactants(
+            (enantiomer_dict[key]["R"],)
+        )[0][0]
+        enantiomer_dict[key]["S"] = make_terminal.RunReactants(
+            (enantiomer_dict[key]["S"],)
+        )[0][0]
 
     return enantiomer_dict
 
@@ -142,7 +145,7 @@ def polyester_stereo(
     try:
         if isinstance(reactants, str):
             reactants = ast.literal_eval(reactants)
-        
+
         if not (isinstance(reactants[0], list) or isinstance(reactants[0], tuple)):
             reactants = [reactants]
 
@@ -172,7 +175,7 @@ def polyester_stereo(
                 poly_id = choices(poly_ids, distribution)[0]
                 poly = ester_prop_stereo(poly, prop_dict[poly_id][CIP])
                 foo = 1
-                
+
             poly = ester_terminate_stereo(poly)
 
             poly_list.append(AllChem.MolToSmiles(poly))
@@ -195,15 +198,10 @@ def get_ester_prop_dict(smiles_list):
     )
 
     enantiomer_dict = dict()
-    for i, monomers in enumerate(smiles_list):    
-        products = [
-            rxn_smarts.RunReactants((stm(smi),))[0][0] for smi in monomers
-        ]
+    for i, monomers in enumerate(smiles_list):
+        products = [rxn_smarts.RunReactants((stm(smi),))[0][0] for smi in monomers]
 
-        enantiomer_dict[i] = {
-            "R": products[0],
-            "S": products[1]
-        }
+        enantiomer_dict[i] = {"R": products[0], "S": products[1]}
 
     return enantiomer_dict
 
@@ -219,15 +217,10 @@ def get_ester_init_dict(smiles_list):
     )
 
     enantiomer_dict = dict()
-    for i, monomers in enumerate(smiles_list):    
-        products = [
-            rxn_smarts.RunReactants((stm(smi),))[0][0] for smi in monomers
-        ]
+    for i, monomers in enumerate(smiles_list):
+        products = [rxn_smarts.RunReactants((stm(smi),))[0][0] for smi in monomers]
 
-        enantiomer_dict[i] = {
-            "R": products[0],
-            "S": products[1]
-        }
+        enantiomer_dict[i] = {"R": products[0], "S": products[1]}
 
     return enantiomer_dict
 
@@ -246,53 +239,3 @@ def ester_terminate_stereo(poly):
     products = prop_rxn.RunReactants((poly,))
 
     return products[0][0]
-
-
-# def generate_stereo_ester(smi, n_structures, pm, DP):
-#     """
-#     Generate stereo structures for duplicate smiles of a polyester.
-#     This can fail when there are multiple stereo sites in a monomer backbone.
-#     """
-#     # Get stereo centers first
-#     smi = AllChem.CanonSmiles(smi)
-#     poly = AllChem.MolFromSmiles(smi)
-#     acid = "[C;$(C[OH]);$(C=O)]"
-#     ol = "[C;$(C[OH]);!$(C=O)]"
-
-#     replicate_RS = get_CIP_assignments(n_structures, pm, DP)
-#     smiles_list = []
-#     for CIP_list in replicate_RS:
-#         smi = assign_CIP_to_poly(poly, CIP_list, acid, ol)
-#         smiles_list.append(smi)
-
-#     return smiles_list
-
-
-# def polyester_stereo_assign(reactants, poly_df, DP):
-#     # Find duplicates based on polymer, pm, and mechanism and generate the stereo for these
-#     duplicates_df = (
-#         poly_df.groupby(by=["pm", "smiles_polymer"])
-#         .size()
-#         .to_frame("n_rows")
-#         .reset_index()
-#     )
-#     for _, row in duplicates_df.iterrows():
-#         smiles = generate_stereo_ester(row.smiles_polymer, row.n_rows, row.pm, DP)
-#         smiles_df = pd.DataFrame(data={"smiles_monomer": smiles})
-#         poly_df.loc[
-#             (poly_df.smiles_polymer == row.smiles_polymer) & (poly_df.pm == row.pm),
-#             "smiles_polymer",
-#         ] = smiles_df.smiles_monomer.to_numpy()
-
-#     poly_df["index"] = poly_df.index
-#     reactants["index"] = reactants.index
-
-#     for _, row in reactants.iterrows():
-#         poly_df.loc[
-#             poly_df["index"] == row["index"], "smiles_monomer"
-#         ] = row.smiles_monomer
-#         poly_df.loc[poly_df["index"] == row["index"], "monomers"] = str(row.monomers)
-
-#     poly_df = poly_df.drop(columns=["index"])
-
-#     return poly_df

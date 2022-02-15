@@ -1,3 +1,4 @@
+"""Useful functions."""
 import random
 
 import numpy as np

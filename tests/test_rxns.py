@@ -28,6 +28,7 @@ def RS_ester_reactants():
 
     return reactants
 
+
 @pytest.fixture
 def RS_vinyl_reactants():
     poly_name = ["Polypropylene"]
@@ -103,41 +104,38 @@ def test_vinyl_enantiomer_dicts():
     def m2s(mol):
         return AllChem.CanonSmiles(AllChem.MolToSmiles(mol))
 
-    smi1 = "C=Cc1ccccc1"
-    smi2 = "C=C([Cl])C"
+    smis = ["C=Cc1ccccc1", "C=C([Cl])C"]
 
-    smi1_prop_dict = get_vinyl_prop_dict(smi1)
-    smi2_prop_dict = get_vinyl_prop_dict(smi2)
+    smis_prop_dict = get_vinyl_prop_dict(smis)
+    smis_init_dict = get_vinyl_init_dict(smis)
 
-    smi1_init_dict = get_vinyl_init_dict(smi1)
-    smi2_init_dict = get_vinyl_init_dict(smi2)
+    assert m2s(smis_prop_dict[0]["R"]) == "[Kr]C[C@H]([XeH])c1ccccc1"
+    assert m2s(smis_prop_dict[0]["S"]) == "[Kr]C[C@@H]([XeH])c1ccccc1"
 
-    assert m2s(smi1_prop_dict["R"]) == "[Kr]C[C@H]([XeH])c1ccccc1"
-    assert m2s(smi1_prop_dict["S"]) == "[Kr]C[C@@H]([XeH])c1ccccc1"
+    assert m2s(smis_prop_dict[1]["R"]) == "C[C@](Cl)([XeH])C[Kr]"
+    assert m2s(smis_prop_dict[1]["S"]) == "C[C@@](Cl)([XeH])C[Kr]"
 
-    assert m2s(smi2_prop_dict["R"]) == "C[C@@](Cl)([XeH])C[Kr]"
-    assert m2s(smi2_prop_dict["S"]) == "C[C@](Cl)([XeH])C[Kr]"
+    assert m2s(smis_init_dict[0]["R"]) == "[XeH][C@@H](C[Hg])c1ccccc1"
+    assert m2s(smis_init_dict[0]["S"]) == "[XeH][C@H](C[Hg])c1ccccc1"
 
-    assert m2s(smi1_init_dict["R"]) == "[XeH][C@@H](C[Hg])c1ccccc1"
-    assert m2s(smi1_init_dict["S"]) == "[XeH][C@H](C[Hg])c1ccccc1"
-
-    assert m2s(smi2_init_dict["R"]) == "C[C@@](Cl)([XeH])C[Hg]"
-    assert m2s(smi2_init_dict["S"]) == "C[C@](Cl)([XeH])C[Hg]"
+    assert m2s(smis_init_dict[1]["R"]) == "C[C@](Cl)([XeH])C[Hg]"
+    assert m2s(smis_init_dict[1]["S"]) == "C[C@@](Cl)([XeH])C[Hg]"
 
 
 def test_vinyl_prop():
-    smi = "C=CC"
+    smi = ["C=CC"]
     prop_dict = get_vinyl_prop_dict(smi)
     init_dict = get_vinyl_init_dict(smi)
 
     CIP_assignments = ["R", "S", "R", "S"]
 
-    chain = init_dict[CIP_assignments[0]]
+    chain = init_dict[0][CIP_assignments[0]]
     for CIP in CIP_assignments[1:]:
-        chain = vinyl_prop_stereo(chain, prop_dict[CIP])
+        chain = vinyl_prop_stereo(chain, prop_dict[0][CIP])
     chain = vinyl_terminate_stereo(chain)
 
     assert AllChem.MolToSmiles(chain) == "CCC[C@H](C)C[C@@H](C)CC(C)C"
+
 
 def test_vinyl(RS_vinyl_reactants):
     poly_df = pm.thermoplastic_stereo(RS_vinyl_reactants, DP=10, pm=0, verbose=False)

@@ -149,7 +149,11 @@ class PolyMaker:
         else:
             # assume for now there are monomers with R and S and specified like
             # M1R.M1S..M2R.M2S
-            monomers = [[PolyMaker.checksmile(enant) for enant in enants.split(".")] for enants in smi.split("..") if enants]
+            monomers = [
+                [PolyMaker.checksmile(enant) for enant in enants.split(".")]
+                for enants in smi.split("..")
+                if enants
+            ]
 
         # Check to see if there are any bad smiles in flattened list
         if any([item == "" for sublist in monomers for item in sublist]):
@@ -363,7 +367,7 @@ class PolyMaker:
             df_return_mapped = pd.concat([res for res in df_return_mapped]).reset_index(
                 drop=True
             )
-            
+
             # if not df_return_mapped.empty:
             #     df_return_mapped.sort_index().sort_values("replicate_structure")
 
