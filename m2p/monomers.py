@@ -3,7 +3,7 @@
 from typing import Tuple, Union
 
 import pandas as pd
-from rdkit import Chem, rdBase
+from rdkit import Chem
 from rdkit.Chem.Descriptors import ExactMolWt
 from rdkit.Chem.rdchem import Mol
 
