@@ -4,8 +4,12 @@ from rdkit import Chem
 from rdkit.Chem import AllChem
 
 from m2p import PolyMaker
-from m2p.stereo_reactions import (get_vinyl_init_dict, get_vinyl_prop_dict,
-                                  vinyl_prop_stereo, vinyl_terminate_stereo)
+from m2p.stereo_reactions import (
+    get_vinyl_init_dict,
+    get_vinyl_prop_dict,
+    vinyl_prop_stereo,
+    vinyl_terminate_stereo,
+)
 
 pm = PolyMaker()
 

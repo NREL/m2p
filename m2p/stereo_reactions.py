@@ -28,7 +28,27 @@ def polyvinyl_stereo(
     replicate_structures: int = 1,
     distribution: Union[List[float], List] = [],
     pm: float = 1,
-):
+) -> pd.DataFrame:
+    """Create polymers ustilizing radical polymerization.
+
+    Parameters
+    ----------
+    reactants : Union[List, str]
+        The smiles to react.
+    DP : int
+        The degree of polymerization, measured by number of monomers incorporated.
+    replicate_structures : int, optional
+        How many replicate structures to generate, by default 1
+    distribution : Union[List[float], List], optional
+        The distribution of monomers determined by their relative abundance. I.e. [1, 2] or [0.33, 0.66] would generate a polymer with two times monomer two than one. Distribution values can be given as any set of numbers, by default []
+    pm : float, optional
+        The pm value for the polymer, by default 1
+
+    Returns
+    -------
+    pd.DataFrame
+        A dataframe containing the polymerization information of the supplied monomers and conditions.
+    """
     try:
         if isinstance(reactants, str):
             reactants = ast.literal_eval(reactants)
@@ -68,7 +88,9 @@ def polyvinyl_stereo(
     return return_poly
 
 
-def get_vinyl_prop_dict(smiles_list):
+def get_vinyl_prop_dict(smiles_list: List[str]):
+    """Generate the propogation dictionary for radical polymerization."""
+
     def stm(smi):
         return AllChem.MolFromSmiles(smi)
 
@@ -102,7 +124,8 @@ def get_vinyl_prop_dict(smiles_list):
     return enantiomer_dict
 
 
-def get_vinyl_init_dict(smi):
+def get_vinyl_init_dict(smi: str):
+    """Generate the initiator dictionary for vinyl polymerization."""
     enantiomer_dict = get_vinyl_prop_dict(smi)
     make_terminal = AllChem.ReactionFromSmarts("[Kr][C:1]>>[Hg][C:1]")
 
@@ -117,7 +140,8 @@ def get_vinyl_init_dict(smi):
     return enantiomer_dict
 
 
-def vinyl_prop_stereo(poly, monomer):
+def vinyl_prop_stereo(poly: AllChem.rdchem.Mol, monomer: AllChem.rdchem.Mol):
+    """Carry out a single propogation step."""
     prop_rxn = AllChem.ReactionFromSmarts("[C:1][Xe].[Kr][C:2]>>[C:1][C:2]")
 
     products = prop_rxn.RunReactants((poly, monomer,))
@@ -125,7 +149,8 @@ def vinyl_prop_stereo(poly, monomer):
     return products[0][0]
 
 
-def vinyl_terminate_stereo(poly):
+def vinyl_terminate_stereo(poly: AllChem.rdchem.Mol):
+    """Carry out a single termination step."""
     term_rxn = AllChem.ReactionFromSmarts("([Xe][C:1].[Hg][C:2])>>([C:1].[C:2])")
 
     products = term_rxn.RunReactants((poly,))
@@ -142,6 +167,26 @@ def polyester_stereo(
     distribution: Union[List[float], List] = [1],
     pm: float = 1,
 ):
+    """Create polyesters with stereochemical information.
+
+    Parameters
+    ----------
+    reactants : Union[List, str]
+        The smiles to react.
+    DP : int
+        The degree of polymerization, measured by number of monomers incorporated.
+    replicate_structures : int, optional
+        How many replicate structures to generate, by default 1
+    distribution : Union[List[float], List], optional
+        The distribution of monomers determined by their relative abundance. I.e. [1, 2] or [0.33, 0.66] would generate a polymer with two times monomer two than one. Distribution values can be given as any set of numbers, by default []
+    pm : float, optional
+        The pm value for the polymer, by default 1
+
+    Returns
+    -------
+    pd.DataFrame
+        A dataframe containing the polymerization information of the supplied monomers and conditions.
+    """
     try:
         if isinstance(reactants, str):
             reactants = ast.literal_eval(reactants)
@@ -188,7 +233,8 @@ def polyester_stereo(
     return return_poly
 
 
-def get_ester_prop_dict(smiles_list):
+def get_ester_prop_dict(smiles_list: str):
+    """Generate the propogation dictionary. Contains monomers + enantiomers."""
     # Xe reacts with Argon
     def stm(smi):
         return AllChem.MolFromSmiles(smi)
@@ -206,7 +252,8 @@ def get_ester_prop_dict(smiles_list):
     return enantiomer_dict
 
 
-def get_ester_init_dict(smiles_list):
+def get_ester_init_dict(smiles_list: str):
+    """Generate the initiation dictionary. Contains monomers + enantiomers."""
     # Pb is terminal on the carboxylic acid, doesn't react
     # Xe reacts with Argon
     def stm(smi):
@@ -225,7 +272,7 @@ def get_ester_init_dict(smiles_list):
     return enantiomer_dict
 
 
-def ester_prop_stereo(poly, monomer):
+def ester_prop_stereo(poly: AllChem.rdchem.Mol, monomer: AllChem.rdchem.Mol):
     prop_rxn = AllChem.ReactionFromSmarts("[C:1][Xe].[Ar][C:2]>>[C:1][O][C:2]")
 
     products = prop_rxn.RunReactants((poly, monomer,))
@@ -233,7 +280,7 @@ def ester_prop_stereo(poly, monomer):
     return products[0][0]
 
 
-def ester_terminate_stereo(poly):
+def ester_terminate_stereo(poly: AllChem.rdchem.Mol):
     prop_rxn = AllChem.ReactionFromSmarts("([Pb][C:1].[Xe][C:2])>>([O][C:1].[O][C:2])")
 
     products = prop_rxn.RunReactants((poly,))
