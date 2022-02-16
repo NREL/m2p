@@ -1,6 +1,7 @@
-from m2p import Monomer
-from rdkit import Chem
 import pytest
+from rdkit import Chem
+
+from m2p import Monomer
 
 
 def test_acid_ol_monomer():
