@@ -87,7 +87,7 @@ class PolyMaker:
                 "infinite_chaine": "to complete",
             },
         }
-        self.__verison__ = "0.1.4.1"
+        self.__verison__ = "0.1.5.0"
 
     @staticmethod
     def checksmile(smi: str) -> Union[str, None]:
