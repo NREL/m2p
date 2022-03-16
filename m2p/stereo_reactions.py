@@ -6,7 +6,7 @@ from typing import List, Union
 import pandas as pd
 from rdkit.Chem import AllChem
 
-from .utils import get_CIP_assignments
+from .utils import get_CIP_assignments, get_monomer_sequences
 
 
 def get_valid_mols(smi_list):
@@ -62,18 +62,21 @@ def polyvinyl_stereo(
         if not distribution:
             distribution = [1]
 
-        # first get the list of CIP assignments to produce
+        # first get the list of CIP assignments and monomer sequences to produce
         poly_list = []
+        monomer_sequences = get_monomer_sequences(
+            replicate_structures, distribution, DP
+        )
         CIP_assignments = get_CIP_assignments(replicate_structures, pm, DP)
-        poly_ids = [i for i, _ in enumerate(reactants)]
+
         prop_dict = get_vinyl_prop_dict(reactants)
         init_dict = get_vinyl_init_dict(reactants)
 
-        for CIPs in CIP_assignments:
-            poly_id = choices(poly_ids, distribution)[0]
+        for i, CIPs in enumerate(CIP_assignments):
+            poly_id = monomer_sequences[i][0]
             poly = init_dict[poly_id][CIPs[0]]
-            for CIP in CIPs[1:]:
-                poly_id = choices(poly_ids, distribution)[0]
+            for j, CIP in enumerate(CIPs[1:]):
+                poly_id = monomer_sequences[i][j + 1]
                 poly = vinyl_prop_stereo(poly, prop_dict[poly_id][CIP])
 
             poly = vinyl_terminate_stereo(poly)
@@ -191,35 +194,34 @@ def polyester_stereo(
         if isinstance(reactants, str):
             reactants = ast.literal_eval(reactants)
 
-        if not (isinstance(reactants[0], list) or isinstance(reactants[0], tuple)):
-            reactants = [reactants]
-
         if isinstance(distribution, str):
             distribution = ast.literal_eval(distribution)
 
-        if len(distribution) != len(reactants):
-            distribution = [1 for i in reactants]
-
         if not distribution:
-            distribution = [1]
+            distribution = []
 
-        # first get the list of CIP assignments to produce
+        # Get the smiles into correct form
+        reactants = [[x, y] for x, y in zip(reactants[::2], reactants[1::2])]
+
+        # first get the list of CIP assignments and monomer sequences to produce
         poly_list = []
-        poly_ids = [i for i, _ in enumerate(reactants)]
+        monomer_sequences = get_monomer_sequences(
+            replicate_structures, distribution, DP
+        )
         CIP_assignments = get_CIP_assignments(replicate_structures, pm, DP)
+
+        # Next generate prop and init dicts
         prop_dict = get_ester_prop_dict(reactants)
         init_dict = get_ester_init_dict(reactants)
 
-        for CIPs in CIP_assignments:
+        for i, CIPs in enumerate(CIP_assignments):
             # Init
-            poly_id = choices(poly_ids, distribution)[0]
+            poly_id = monomer_sequences[i][0]
             poly = init_dict[poly_id][CIPs[0]]
 
-            for CIP in CIPs[1:]:
-                last_poly = poly
-                poly_id = choices(poly_ids, distribution)[0]
+            for j, CIP in enumerate(CIPs[1:]):
+                poly_id = monomer_sequences[i][j + 1]
                 poly = ester_prop_stereo(poly, prop_dict[poly_id][CIP])
-                foo = 1
 
             poly = ester_terminate_stereo(poly)
 

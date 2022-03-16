@@ -31,7 +31,7 @@ class PolyMaker:
             "cyclic_carbonates": "[O]=[C]1[O][C][C][O]1",
             "acidanhydrides": "[#8]([#6](=[#8]))([#6](=[#8]))",
             "prime_thiols": "[#6;!$(C=O)][SH]",
-            "isocyanates":"[#6][#7;!$([#7+])]=[#6]=[#8]"
+            "isocyanates": "[#6][#7;!$([#7+])]=[#6]=[#8]",
         }
         self.reactions = {
             "ester": {
@@ -87,16 +87,15 @@ class PolyMaker:
                 "[C:7][NH:6][C:1](=[O:0])[O:2][C:3][C:4][O:5]",
                 "infinite_chain": "to complete",
             },
-            "Urethane":{
-                "diisocyanates_ol":"[#6:0][#7;!$([#7+]):1]=[#6:2]=[#8:3].[C,c;!$(C=O):4][OH:5]>>"
+            "Urethane": {
+                "diisocyanates_ol": "[#6:0][#7;!$([#7+]):1]=[#6:2]=[#8:3].[C,c;!$(C=O):4][OH:5]>>"
                 "[#6:0][#7;!$([#7+]):1]-[#6:2](=[#8:3])[O:5][C;!$(C=O):4]",
-                "diols_isocyanate":"[C,c;!$(C=O):4][OH:5].[#6:0][#7;!$([#7+]):1]=[#6:2]=[#8:3]>>"
+                "diols_isocyanate": "[C,c;!$(C=O):4][OH:5].[#6:0][#7;!$([#7+]):1]=[#6:2]=[#8:3]>>"
                 "[#6:0][#7;!$([#7+]):1]-[#6:2](=[#8:3])[O:5][C;!$(C=O):4]",
-                "infinite_chain":"to complete"
-            }
+                "infinite_chain": "to complete",
+            },
         }
         self.__verison__ = "0.1.5.0"
-
 
     @staticmethod
     def checksmile(smi: str) -> Union[str, None]:
@@ -332,10 +331,6 @@ class PolyMaker:
         pd.DataFrame
             A dataframe containing the polymerized inputs
         """
-        # Get rid of these two different ones. Using now just for getting it to work.
-
-        df_return_mapped = pd.DataFrame()
-
         # Ensure there is a Pm value, default is 1
         if "pm" not in reactants:
             reactants["pm"] = pm
@@ -358,10 +353,7 @@ class PolyMaker:
 
         reactants["DP"] = DP
 
-        stereo_df = reactants.copy()
-        if not stereo_df.empty:
-            stereo_df.loc[:, "monomers"] = stereo_df.monomers.astype(str)
-            df_return_mapped = pd.concat([df_return_mapped, stereo_df])
+        df_return_mapped = reactants
 
         if verbose:
             df_return_mapped = df_return_mapped.progress_apply(
@@ -410,7 +402,7 @@ class PolyMaker:
             # TODO: how to integrate
             return pd.DataFrame()
         else:
-            df_poly[row.keys()] = row
+            df_poly = pd.merge(df_poly, row.to_frame().T, how="cross")
             df_poly["replicate_structure"] = [
                 i for i in range(row.replicate_structures)
             ]
@@ -572,7 +564,7 @@ class PolyMaker:
                 "aliphatic_ols",
                 "acidanhydrides",
                 "cyclic_carbonates",
-                "isocyanates"
+                "isocyanates",
             ],
         )
         df_func = df_func.apply(lambda r: id_functionality(r), axis=1)
@@ -668,7 +660,7 @@ class PolyMaker:
             polydata = self.__poly_NIPU(reactants, DP, distribution, infinite_chain)
             returnpoly = polydata[0]
             mechanism = polydata[1]
-        
+
         elif mechanism == "urethane":
             polydata = self.__poly_urethane(reactants, DP, distribution, infinite_chain)
             returnpoly = polydata[0]
@@ -1565,9 +1557,9 @@ class PolyMaker:
                 if (df_func.loc["smiles_polymer", "isocyanates"] >= 1) & (
                     df_func.loc["smiles_polymer", "ols"] >= 1
                 ):
-                    msk = (
-                        (df_func.ols >= 1) | (df_func.isocyanates >= 1)
-                    ) & (df_func.index != "smiles_polymer")
+                    msk = ((df_func.ols >= 1) | (df_func.isocyanates >= 1)) & (
+                        df_func.index != "smiles_polymer"
+                    )
                     df_func_select = df_func.loc[msk]
                     a = df_func_select.sample(
                         1, weights=df_func.distribution, replace=True
@@ -1577,9 +1569,7 @@ class PolyMaker:
                     if df_func.loc[a].ols >= 1:
                         rxn_selector = "diisocyanates_ol"
                 elif df_func.loc["smiles_polymer", "isocyanates"] >= 2:
-                    msk = (df_func.ols >= 1) & (
-                        df_func.index != "smiles_polymer"
-                    )
+                    msk = (df_func.ols >= 1) & (df_func.index != "smiles_polymer")
                     df_func_select = df_func.loc[msk]
                     a = df_func_select.sample(
                         1, weights=df_func.distribution, replace=True
@@ -1649,7 +1639,6 @@ class PolyMaker:
             poly = "ERROR:Urethane_ReactionFailed"
 
         return poly, "Urethane"
-
 
     def __poly_upe(self, reactants, crosslinker, distribution, DP):
         """generates 2 ringed thermoset
