@@ -32,6 +32,11 @@ class PolyMaker:
             "acidanhydrides": "[#8]([#6](=[#8]))([#6](=[#8]))",
             "prime_thiols": "[#6;!$(C=O)][SH]",
             "isocyanates": "[#6][#7;!$([#7+])]=[#6]=[#8]",
+            'acrylates' : '[CH2]=[C][C](=[O])',
+            'double_bond' : 'C=C',
+            'vinyls' : '[CH2]=[CH!$(CC=O)]',
+            'double_bond_secondary' : '[CH]=[CH]',
+            'double_bond_tertiary' : '[CH]=[C!$([CH])]'
         }
         self.reactions = {
             "ester": {
@@ -506,7 +511,7 @@ class PolyMaker:
         returnpoly = returnpoly.sort_index().sort_values("replicate_structure")
         return returnpoly
 
-    def get_functionality(self, reactants, distribution=[]):
+    def get_functionality(self, reactants, distribution=[],verbose=0):
         """gets the functional groups from a list of reactants
 
         inputs: list of smiles
@@ -515,59 +520,19 @@ class PolyMaker:
 
         def id_functionality(r):
             mol = Chem.MolFromSmiles(r.name)
-            r.ols = len(
-                mol.GetSubstructMatches(Chem.MolFromSmarts(self.smiles_req["ols"]))
-            )
-            r.aliphatic_ols = len(
-                mol.GetSubstructMatches(
-                    Chem.MolFromSmarts(self.smiles_req["aliphatic_ols"])
-                )
-            )
-            r.acids = len(
-                mol.GetSubstructMatches(Chem.MolFromSmarts(self.smiles_req["acids"]))
-            )
-            r.prime_amines = len(
-                mol.GetSubstructMatches(
-                    Chem.MolFromSmarts(self.smiles_req["prime_amines"])
-                )
-            )
-            r.carbonates = len(
-                mol.GetSubstructMatches(
-                    Chem.MolFromSmarts(self.smiles_req["carbonates"])
-                )
-            )
-            r.acidanhydrides = len(
-                mol.GetSubstructMatches(
-                    Chem.MolFromSmarts(self.smiles_req["acidanhydrides"])
-                )
-            )
-            r.cyclic_carbonates = len(
-                mol.GetSubstructMatches(
-                    Chem.MolFromSmarts(self.smiles_req["cyclic_carbonates"])
-                )
-            )
-            r.isocyanates = len(
-                mol.GetSubstructMatches(
-                    Chem.MolFromSmarts(self.smiles_req["isocyanates"])
-                )
-            )
+            for k,v in self.smiles_req.items():
+                r[k] = len(mol.GetSubstructMatches(Chem.MolFromSmarts(v)))
             return r
 
         df_func = pd.DataFrame(
             data=0,
             index=reactants,
-            columns=[
-                "ols",
-                "acids",
-                "prime_amines",
-                "carbonates",
-                "aliphatic_ols",
-                "acidanhydrides",
-                "cyclic_carbonates",
-                "isocyanates",
-            ],
+            columns=self.smiles_req.keys(),
         )
-        df_func = df_func.apply(lambda r: id_functionality(r), axis=1)
+        if verbose==0:
+            df_func = df_func.apply(lambda r: id_functionality(r), axis=1)
+        if verbose>=1:
+            df_func = df_func.progress_apply(lambda r: id_functionality(r), axis=1)
 
         # appends distribution to dataframe
 
