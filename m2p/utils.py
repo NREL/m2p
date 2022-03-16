@@ -1,11 +1,74 @@
 """Useful functions."""
 import random
+import ast
 
 import numpy as np
-from casadi.casadi import ceil, floor
-from rdkit import Chem
+from math import ceil, floor
 from rdkit.Chem import AllChem
 from rdkit.Chem.rdchem import ChiralType
+
+
+def get_monomer_sequences(n_structures, distribution, DP):
+    """Only supports homopolymer/copolymer of 2 monomers. Anything larger will be given
+    a valid sequence that is near the actual distribution, but no consideration for rounding
+    will be taken."""
+
+    # homopolymer
+    if not distribution or len(distribution) == 1:
+        return [[0] * DP] * n_structures
+
+    if len(distribution) == 2:
+        # First normalize the distribution and multiply by DP to sum to DP
+        distribution = [
+            DP * monomer_d / sum(distribution) for monomer_d in distribution
+        ]
+
+        bias_first = [ceil(distribution[0]), floor(distribution[1])]
+        bias_second = [floor(distribution[0]), ceil(distribution[1])]
+        monomer_sequences = [
+            [0] * bias_first[0] + [1] * bias_first[1],
+            [0] * bias_second[0] + [1] * bias_second[1],
+        ]
+
+        # Calculate weights of first/second bias
+        weight_first = 1 - (bias_first[0] - distribution[0])
+        weight_second = 1 - weight_first
+        weights = [weight_first, weight_second]
+
+        sequences = []
+        i = 0
+        i_max = 100
+        while len(sequences) < n_structures:
+            sequence_list = random.choices(monomer_sequences, weights)[0]
+
+            perm = tuple(np.random.permutation(sequence_list))
+            if (perm not in sequences) or (i >= i_max):
+                sequences.append(perm)
+                i = 0
+            else:
+                i += 1
+
+    else:
+        distribution = [
+            DP * monomer_d / sum(distribution) for monomer_d in distribution
+        ]
+        ceils = [ceil(i) for i in distribution]
+        sequence_list = [[i] * n for i, n in enumerate(ceils)]
+        sequence_list = [item for sublist in sequence_list for item in sublist]
+
+        sequences = []
+        i = 0
+        i_max = 100
+        while len(sequences) < n_structures:
+            perm = tuple(np.random.permutation(sequence_list))
+            perm = perm[:DP]
+            if (perm not in sequences) or (i >= i_max):
+                sequences.append(perm)
+                i = 0
+            else:
+                i += 1
+
+    return sequences
 
 
 def get_CIP_assignments(n_structures, pm, DP):

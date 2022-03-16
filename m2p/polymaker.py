@@ -31,6 +31,7 @@ class PolyMaker:
             "cyclic_carbonates": "[O]=[C]1[O][C][C][O]1",
             "acidanhydrides": "[#8]([#6](=[#8]))([#6](=[#8]))",
             "prime_thiols": "[#6;!$(C=O)][SH]",
+            "isocyanates": "[#6][#7;!$([#7+])]=[#6]=[#8]",
         }
         self.reactions = {
             "ester": {
@@ -84,7 +85,14 @@ class PolyMaker:
                 "[C:7][NH:6][C:1](=[O:0])[O:2][C:3][C:4][O:5]",
                 "diamine_cycliccarbonate": "[NH2;!$([NH2+]):6][#6;!$(C=O):7].[O:0]=[C:1]1[O:2][C:3][C:4][O:5]1>>"
                 "[C:7][NH:6][C:1](=[O:0])[O:2][C:3][C:4][O:5]",
-                "infinite_chaine": "to complete",
+                "infinite_chain": "to complete",
+            },
+            "Urethane": {
+                "diisocyanates_ol": "[#6:0][#7;!$([#7+]):1]=[#6:2]=[#8:3].[C,c;!$(C=O):4][OH:5]>>"
+                "[#6:0][#7;!$([#7+]):1]-[#6:2](=[#8:3])[O:5][C;!$(C=O):4]",
+                "diols_isocyanate": "[C,c;!$(C=O):4][OH:5].[#6:0][#7;!$([#7+]):1]=[#6:2]=[#8:3]>>"
+                "[#6:0][#7;!$([#7+]):1]-[#6:2](=[#8:3])[O:5][C;!$(C=O):4]",
+                "infinite_chain": "to complete",
             },
         }
         self.__verison__ = "0.1.5.0"
@@ -323,10 +331,6 @@ class PolyMaker:
         pd.DataFrame
             A dataframe containing the polymerized inputs
         """
-        # Get rid of these two different ones. Using now just for getting it to work.
-
-        df_return_mapped = pd.DataFrame()
-
         # Ensure there is a Pm value, default is 1
         if "pm" not in reactants:
             reactants["pm"] = pm
@@ -349,10 +353,7 @@ class PolyMaker:
 
         reactants["DP"] = DP
 
-        stereo_df = reactants.copy()
-        if not stereo_df.empty:
-            stereo_df.loc[:, "monomers"] = stereo_df.monomers.astype(str)
-            df_return_mapped = pd.concat([df_return_mapped, stereo_df])
+        df_return_mapped = reactants
 
         if verbose:
             df_return_mapped = df_return_mapped.progress_apply(
@@ -401,7 +402,7 @@ class PolyMaker:
             # TODO: how to integrate
             return pd.DataFrame()
         else:
-            df_poly[row.keys()] = row
+            df_poly = pd.merge(df_poly, row.to_frame().T, how="cross")
             df_poly["replicate_structure"] = [
                 i for i in range(row.replicate_structures)
             ]
@@ -545,6 +546,11 @@ class PolyMaker:
                     Chem.MolFromSmarts(self.smiles_req["cyclic_carbonates"])
                 )
             )
+            r.isocyanates = len(
+                mol.GetSubstructMatches(
+                    Chem.MolFromSmarts(self.smiles_req["isocyanates"])
+                )
+            )
             return r
 
         df_func = pd.DataFrame(
@@ -558,6 +564,7 @@ class PolyMaker:
                 "aliphatic_ols",
                 "acidanhydrides",
                 "cyclic_carbonates",
+                "isocyanates",
             ],
         )
         df_func = df_func.apply(lambda r: id_functionality(r), axis=1)
@@ -654,6 +661,11 @@ class PolyMaker:
             returnpoly = polydata[0]
             mechanism = polydata[1]
 
+        elif mechanism == "urethane":
+            polydata = self.__poly_urethane(reactants, DP, distribution, infinite_chain)
+            returnpoly = polydata[0]
+            mechanism = polydata[1]
+
         elif mechanism == "all":
             polylist = [
                 self.__poly_vinyl(reactants, DP, distribution, infinite_chain),
@@ -662,6 +674,7 @@ class PolyMaker:
                 self.__poly_carbonate(reactants, DP, distribution, infinite_chain),
                 self.__poly_imide(reactants, DP, distribution, infinite_chain),
                 self.__poly_NIPU(reactants, DP, distribution, infinite_chain),
+                self.__poly_urethane(reactants, DP, distribution, infinite_chain),
             ]
 
             polylist = [
@@ -675,6 +688,7 @@ class PolyMaker:
                     "ERROR:Carbonate_ReactionFailed",
                     "ERROR:Imide_ReactionFailed",
                     "ERROR:NIPU_ReactionFailed",
+                    "ERROR:Urethane_ReactionFailed",
                     "",
                 ]
             ]
@@ -1518,6 +1532,113 @@ class PolyMaker:
             poly = "ERROR:NIPU_ReactionFailed"
 
         return poly, "NIPU"
+
+    def __poly_urethane(self, reactants, DP=2, distribution=[], infinite_chain=False):
+        """performs condenstation reaction on diisocyanates and  diols"""
+        # function
+
+        try:
+            # initial
+            rxn_dic = self.reactions["Urethane"]
+            df_func = self.get_functionality(reactants, distribution=distribution)
+
+            # select initial monomer as polymer chain
+            df_poly = df_func.sample(1)
+            df_func.loc["smiles_polymer"] = df_poly.sample(1).values[0]
+            poly = df_poly.index[0]
+            molpoly = Chem.MolFromSmiles(poly)
+
+            DP_count = 1
+            DP_actual = 1
+
+            while DP_count < DP:
+
+                # select rxn rule and reactant
+                if (df_func.loc["smiles_polymer", "isocyanates"] >= 1) & (
+                    df_func.loc["smiles_polymer", "ols"] >= 1
+                ):
+                    msk = ((df_func.ols >= 1) | (df_func.isocyanates >= 1)) & (
+                        df_func.index != "smiles_polymer"
+                    )
+                    df_func_select = df_func.loc[msk]
+                    a = df_func_select.sample(
+                        1, weights=df_func.distribution, replace=True
+                    ).index.values[0]
+                    if df_func.loc[a].isocyanates >= 1:
+                        rxn_selector = "diols_isocyanate"
+                    if df_func.loc[a].ols >= 1:
+                        rxn_selector = "diisocyanates_ol"
+                elif df_func.loc["smiles_polymer", "isocyanates"] >= 2:
+                    msk = (df_func.ols >= 1) & (df_func.index != "smiles_polymer")
+                    df_func_select = df_func.loc[msk]
+                    a = df_func_select.sample(
+                        1, weights=df_func.distribution, replace=True
+                    ).index.values[0]
+                    rxn_selector = "diisocyanates_ol"
+                elif df_func.loc["smiles_polymer", "ols"] >= 2:
+                    msk = (df_func.isocyanates >= 1) & (
+                        df_func.index != "smiles_polymer"
+                    )
+                    df_func_select = df_func.loc[msk]
+                    a = df_func_select.sample(
+                        1, weights=df_func.distribution, replace=True
+                    ).index.values[0]
+                    rxn_selector = "diols_isocyanate"
+                else:
+                    assert False
+
+                rxn = Chem.AllChem.ReactionFromSmarts(rxn_dic[rxn_selector])
+
+                # update df_func table
+                df_func.loc["smiles_polymer"] = (
+                    df_func.loc["smiles_polymer"] + df_func.loc[a]
+                )  # adding polymer and a
+                for column_name in ["isocyanates", "ols"]:
+                    df_func.loc["smiles_polymer", column_name] += -1
+                assert (
+                    df_func.loc["smiles_polymer"][
+                        df_func.loc["smiles_polymer"] > -1
+                    ].shape
+                    == df_func.loc["smiles_polymer"].shape
+                )
+
+                # React and select product
+                mola = Chem.MolFromSmiles(a)
+                prod = rxn.RunReactants((molpoly, mola))
+                prodlist = [Chem.MolToSmiles(x[0]) for x in prod]
+                prodlist = self._returnvalid(prodlist)
+                poly = random.choice(prodlist)
+                molpoly = Chem.MolFromSmiles(poly)
+
+                # manage loop and ring close
+                if (infinite_chain) & (DP_count == DP - 1):
+                    # logic for closing ring
+                    if (df_func.loc["smiles_polymer", "isocyanates"] > 0) & (
+                        df_func.loc["smiles_polymer", "ols"]
+                    ) > 0:
+                        # case for when can ring close
+                        DP_count += 1
+                        DP_actual += 1
+                    else:
+                        # case for when has same terminal ends so can't ring close
+                        DP_count = DP_count
+                        DP_actual += 1
+                else:
+                    DP_count += 1
+                    DP_actual += 1
+
+            if infinite_chain:  # closes ring
+
+                rxn = Chem.AllChem.ReactionFromSmarts(rxn_dic["infinite_chain"])
+                prod = rxn.RunReactants((molpoly,))
+                prodlist = [Chem.MolToSmiles(x[0]) for x in prod]
+                prodlist = self._returnvalid(prodlist)
+                poly = random.choice(prodlist)
+                molpoly = Chem.MolFromSmiles(poly)
+        except:
+            poly = "ERROR:Urethane_ReactionFailed"
+
+        return poly, "Urethane"
 
     def __poly_upe(self, reactants, crosslinker, distribution, DP):
         """generates 2 ringed thermoset

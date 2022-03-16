@@ -22,9 +22,13 @@ def vinyl():
 @pytest.fixture
 def RS_ester_reactants():
     poly_name = ["poly(RS-3-hydroxybutyrate)"]
-    smiles = ["C[C@@H](O)CC(=O)O.C[C@H](O)CC(=O)O.."]
+    smiles = ["C[C@@H](O)CC(=O)O.C[C@H](O)CC(=O)O"]
 
-    reactants = pd.DataFrame({"smiles_monomer": smiles}, index=poly_name)
+    reactants = pd.DataFrame(
+        {"smiles_monomer": smiles, "replicate_structures": [1]},
+        columns=["smiles_monomer", "replicate_structures"],
+        index=poly_name,
+    )
     reactants["monomers"] = reactants.smiles_monomer.apply(
         lambda s: pm.get_monomers(s, stereochemistry=True)
     )
@@ -38,7 +42,9 @@ def RS_vinyl_reactants():
     poly_name = ["Polypropylene"]
     smiles = ["CC=C"]
 
-    reactants = pd.DataFrame({"smiles_monomer": smiles}, index=poly_name)
+    reactants = pd.DataFrame(
+        {"smiles_monomer": smiles, "replicate_structures": [1]}, index=poly_name
+    )
     reactants["monomers"] = reactants.smiles_monomer.apply(
         lambda s: pm.get_monomers(s, stereochemistry=True)
     )
