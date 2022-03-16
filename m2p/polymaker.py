@@ -32,11 +32,11 @@ class PolyMaker:
             "acidanhydrides": "[#8]([#6](=[#8]))([#6](=[#8]))",
             "prime_thiols": "[#6;!$(C=O)][SH]",
             "isocyanates": "[#6][#7;!$([#7+])]=[#6]=[#8]",
-            'acrylates' : '[CH2]=[C][C](=[O])',
-            'double_bond' : 'C=C',
-            'vinyls' : '[CH2]=[CH!$(CC=O)]',
-            'double_bond_secondary' : '[CH]=[CH]',
-            'double_bond_tertiary' : '[CH]=[C!$([CH])]'
+            "acrylates": "[CH2]=[C][C](=[O])",
+            "double_bond": "C=C",
+            "vinyls": "[CH2]=[CH!$(CC=O)]",
+            "double_bond_secondary": "[CH]=[CH]",
+            "double_bond_tertiary": "[CH]=[C!$([CH])]",
         }
         self.reactions = {
             "ester": {
@@ -362,11 +362,13 @@ class PolyMaker:
 
         if verbose:
             df_return_mapped = df_return_mapped.progress_apply(
-                self._polymerizemechanism_thermoplastic_stereo, axis=1,
+                self._polymerizemechanism_thermoplastic_stereo,
+                axis=1,
             )
         else:
             df_return_mapped = df_return_mapped.apply(
-                self._polymerizemechanism_thermoplastic_stereo, axis=1,
+                self._polymerizemechanism_thermoplastic_stereo,
+                axis=1,
             )
 
         if not df_return_mapped.empty:
@@ -511,7 +513,7 @@ class PolyMaker:
         returnpoly = returnpoly.sort_index().sort_values("replicate_structure")
         return returnpoly
 
-    def get_functionality(self, reactants, distribution=[],verbose=0):
+    def get_functionality(self, reactants, distribution=[], verbose=0):
         """gets the functional groups from a list of reactants
 
         inputs: list of smiles
@@ -520,7 +522,7 @@ class PolyMaker:
 
         def id_functionality(r):
             mol = Chem.MolFromSmiles(r.name)
-            for k,v in self.smiles_req.items():
+            for k, v in self.smiles_req.items():
                 r[k] = len(mol.GetSubstructMatches(Chem.MolFromSmarts(v)))
             return r
 
@@ -529,9 +531,9 @@ class PolyMaker:
             index=reactants,
             columns=self.smiles_req.keys(),
         )
-        if verbose==0:
+        if verbose == 0:
             df_func = df_func.apply(lambda r: id_functionality(r), axis=1)
-        if verbose>=1:
+        if verbose >= 1:
             df_func = df_func.progress_apply(lambda r: id_functionality(r), axis=1)
 
         # appends distribution to dataframe
@@ -577,7 +579,7 @@ class PolyMaker:
         if numdecimals == -1:
             numdecimals = 0
 
-        distribution = [int(d * 10 ** numdecimals) for d in distribution]
+        distribution = [int(d * 10**numdecimals) for d in distribution]
 
         try:
             distribution = distribution / np.gcd.reduce(distribution)
