@@ -35,7 +35,6 @@ class PolyMaker:
             "acrylates": "[CH2]=[C][C](=[O])",
             "double_bond": "C=C",
             "vinyls": "[CH2]=[CH!$(CC=O)]",
-            "imides": "[#8:3]([#6:4](=[#8:5]))([#6:6](=[#8:7]))",
             "double_bond_secondary": "[CH]=[CH]",
             "double_bond_tertiary": "C[C]=[C!$([CH])]C",
             "double_bond_quaternary": "C[C!$([CH])]=[C!$([CH])]C",
@@ -102,7 +101,7 @@ class PolyMaker:
                 "infinite_chain": "to complete",
             },
         }
-        self.__verison__ = "0.1.7.0"
+        self.__verison__ = "0.1.7.1"
 
     @staticmethod
     def checksmile(smi: str) -> Union[str, None]:
@@ -593,7 +592,7 @@ class PolyMaker:
         if numdecimals == -1:
             numdecimals = 0
 
-        distribution = [int(d * 10 ** numdecimals) for d in distribution]
+        distribution = [int(d * 10**numdecimals) for d in distribution]
 
         try:
             distribution = distribution / np.gcd.reduce(distribution)

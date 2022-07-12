@@ -14,7 +14,7 @@ with open(path.join(here, "README.md"), encoding="utf-8") as f:
 
 setup(
     name="m2p",
-    version="0.1.7.0",
+    version="0.1.7.1",
     description="Library for creating polymer structures from monomers using SMILES strings",
     long_description=long_description,
     long_description_content_type="text/markdown",
