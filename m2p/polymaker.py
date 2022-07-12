@@ -35,10 +35,10 @@ class PolyMaker:
             "acrylates": "[CH2]=[C][C](=[O])",
             "double_bond": "C=C",
             "vinyls": "[CH2]=[CH!$(CC=O)]",
-            'imides':'[#8:3]([#6:4](=[#8:5]))([#6:6](=[#8:7]))',
+            "imides": "[#8:3]([#6:4](=[#8:5]))([#6:6](=[#8:7]))",
             "double_bond_secondary": "[CH]=[CH]",
             "double_bond_tertiary": "C[C]=[C!$([CH])]C",
-            "double_bond_quaternary":"C[C!$([CH])]=[C!$([CH])]C"
+            "double_bond_quaternary": "C[C!$([CH])]=[C!$([CH])]C",
         }
         self.reactions = {
             "ester": {
@@ -496,16 +496,12 @@ class PolyMaker:
             returnpoly_i.loc[:, "monomers"] = returnpoly_i.monomers.astype(str)
             returnpoly = pd.concat([returnpoly, returnpoly_i])
 
-        
-        
-
         if verbose:
             apply_method = returnpoly.progress_apply
         else:
             apply_method = returnpoly.apply
 
-
-        if (returnpoly.keys()=='mechanism').any()&((mechanism=='')):
+        if (returnpoly.keys() == "mechanism").any() & ((mechanism == "")):
             returnpoly[["smiles_polymer", "mechanism"]] = apply_method(
                 lambda row: self.__polymerizemechanism_thermoplastic(
                     ast.literal_eval(row.monomers),
@@ -597,7 +593,7 @@ class PolyMaker:
         if numdecimals == -1:
             numdecimals = 0
 
-        distribution = [int(d * 10**numdecimals) for d in distribution]
+        distribution = [int(d * 10 ** numdecimals) for d in distribution]
 
         try:
             distribution = distribution / np.gcd.reduce(distribution)
