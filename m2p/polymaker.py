@@ -382,7 +382,8 @@ class PolyMaker:
 
         if "index" in df_return_mapped.columns:
             df_return_mapped = df_return_mapped.drop(columns=["index"])
-        df_return_mapped = df_return_mapped.drop(columns=["replicate_structures"])
+        if "replicate_structures" in df_return_mapped.columns:
+            df_return_mapped = df_return_mapped.drop(columns=["replicate_structures"])
         df_return_mapped = df_return_mapped.reset_index(drop=True)
 
         return df_return_mapped
