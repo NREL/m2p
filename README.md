@@ -1,6 +1,3 @@
-[![Build Status](https://travis-ci.com/NREL/m2p.svg?branch=master)](https://travis-ci.com/NREL/m2p)
-[![PyPI version](https://badge.fury.io/py/m2p.svg)](https://badge.fury.io/py/m2p)
-
 # Monomers to Polymers (m2p)
 
 A simple interface for converting monomers to polymers using SMILES representation.
