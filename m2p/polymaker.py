@@ -127,7 +127,7 @@ class PolyMaker:
         return smi
 
     @staticmethod
-    def get_monomers(smi: str, stereochemistry: bool = True) -> List[str]:
+    def get_monomers(smi: str, stereochemistry: bool = True,sort_by_mw: bool=True) -> List[str]:
         """Convert a string of monomers into a list of monomers.
 
         The input string must contain monomer SMILES seperated by ".". Each monomer is checked for validity.
@@ -138,7 +138,8 @@ class PolyMaker:
             SMILES strings seperated by "." if multiple SMILES.
         stereochemistry : bool, optional
             Whether or not to retain stereochemistry in SMILES strings, by default False
-
+        stereochemistry : bool, optional
+            Sorts monomers by their molecular weight, default True
         Returns
         -------
         List[str]
@@ -172,6 +173,10 @@ class PolyMaker:
         # Check to see if there are any bad smiles in flattened list
         if any([item == "" for sublist in monomers for item in sublist]):
             monomers == None
+        # Sort by MW
+        if sort_by_mw == True:
+            dict_mw_smile = {Descriptors.ExactMolWt(Chem.MolFromSmiles(Chem.CanonSmiles(s))):s for s in monomers}
+            monomers = tuple(dict_mw_smile[k] for k in sorted(dict_mw_smile))
 
         return monomers
 
