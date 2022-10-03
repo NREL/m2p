@@ -3,6 +3,8 @@ from os import path
 
 from setuptools import find_packages, setup
 
+import versioneer
+
 here = path.abspath(path.dirname(__file__))
 
 # Get the long description from the README file
@@ -14,7 +16,8 @@ with open(path.join(here, "README.md"), encoding="utf-8") as f:
 
 setup(
     name="m2p",
-    version="0.1.7.1",
+    version=versioneer.get_version(),
+    cmdclass=versioneer.get_cmdclass(),
     description="Library for creating polymer structures from monomers using SMILES strings",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -30,7 +33,6 @@ setup(
         # Specify the Python versions you support here. In particular, ensure
         # that you indicate whether you support Python 2, Python 3 or both.
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.4",
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",

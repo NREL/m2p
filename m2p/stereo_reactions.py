@@ -147,7 +147,12 @@ def vinyl_prop_stereo(poly: AllChem.rdchem.Mol, monomer: AllChem.rdchem.Mol):
     """Carry out a single propogation step."""
     prop_rxn = AllChem.ReactionFromSmarts("[C:1][Xe].[Kr][C:2]>>[C:1][C:2]")
 
-    products = prop_rxn.RunReactants((poly, monomer,))
+    products = prop_rxn.RunReactants(
+        (
+            poly,
+            monomer,
+        )
+    )
 
     return products[0][0]
 
@@ -277,7 +282,12 @@ def get_ester_init_dict(smiles_list: str):
 def ester_prop_stereo(poly: AllChem.rdchem.Mol, monomer: AllChem.rdchem.Mol):
     prop_rxn = AllChem.ReactionFromSmarts("[C:1][Xe].[Ar][C:2]>>[C:1][O][C:2]")
 
-    products = prop_rxn.RunReactants((poly, monomer,))
+    products = prop_rxn.RunReactants(
+        (
+            poly,
+            monomer,
+        )
+    )
 
     return products[0][0]
 

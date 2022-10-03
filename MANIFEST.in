@@ -1,0 +1,2 @@
+include versioneer.py
+include m2p/_version.py

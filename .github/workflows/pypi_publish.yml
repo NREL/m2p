@@ -1,0 +1,58 @@
+# This workflow will upload a Python Package using Twine when a release is created
+# For more information see: https://help.github.com/en/actions/language-and-framework-guides/using-python-with-github-actions#publishing-to-package-registries
+
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+name: Publish to PyPi
+
+on:
+  push:
+    branches:
+      - "master"
+    tags:
+      - "*"
+
+permissions:
+  contents: read
+
+jobs:
+  # test:
+    # put test stuff here. see https://github.com/NREL/alfabet/blob/master/.github/workflows/run_tests_and_deploy.yml
+  release:
+    # needs: test
+    if: startsWith(github.ref, 'refs/tags') #for publishing new tags
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [ 3.5,3.6,3.7,3.8 ]
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v3
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Get tag
+      id: tag
+      run: echo "::set-output name=version::${GITHUB_REF#refs/tags/}"
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip setuptools wheel
+        python -m pip install twine
+
+    # Upload to PyPI
+    - name: Build and Upload to PyPI
+      run: python3 setup.py sdist bdist_wheel
+    - name: Check the package
+      run: twine check dist/*
+    - name: Push to TestPyPI
+      run: python3 -m twine upload dist/*
+      env:
+        STACKMANAGER_VERSION: ${{ github.event.release.tag_name }}
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
