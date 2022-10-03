@@ -127,7 +127,9 @@ class PolyMaker:
         return smi
 
     @staticmethod
-    def get_monomers(smi: str, stereochemistry: bool = True,sort_by_mw: bool=True) -> List[str]:
+    def get_monomers(
+        smi: str, stereochemistry: bool = True, sort_by_mw: bool = True
+    ) -> List[str]:
         """Convert a string of monomers into a list of monomers.
 
         The input string must contain monomer SMILES seperated by ".". Each monomer is checked for validity.
@@ -175,7 +177,10 @@ class PolyMaker:
             monomers == None
         # Sort by MW
         if sort_by_mw == True:
-            dict_mw_smile = {Descriptors.ExactMolWt(Chem.MolFromSmiles(Chem.CanonSmiles(s))):s for s in monomers}
+            dict_mw_smile = {
+                Descriptors.ExactMolWt(Chem.MolFromSmiles(Chem.CanonSmiles(s))): s
+                for s in monomers
+            }
             monomers = tuple(dict_mw_smile[k] for k in sorted(dict_mw_smile))
 
         return monomers
@@ -597,7 +602,7 @@ class PolyMaker:
         if numdecimals == -1:
             numdecimals = 0
 
-        distribution = [int(d * 10**numdecimals) for d in distribution]
+        distribution = [int(d * 10 ** numdecimals) for d in distribution]
 
         try:
             distribution = distribution / np.gcd.reduce(distribution)
