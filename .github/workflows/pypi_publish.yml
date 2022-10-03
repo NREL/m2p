@@ -50,9 +50,9 @@ jobs:
       run: python3 setup.py sdist bdist_wheel
     - name: Check the package
       run: twine check dist/*
-    - name: Push to TestPyPI
+    - name: Push to PyPI
       run: python3 -m twine upload dist/*
       env:
         STACKMANAGER_VERSION: ${{ github.event.release.tag_name }}
         TWINE_USERNAME: __token__
-        TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+        TWINE_PASSWORD: ${{ secrets.PYPI_API }}
