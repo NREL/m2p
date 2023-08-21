@@ -102,6 +102,7 @@ class PolyMaker:
             },
         }
         self.__verison__ = "0.1.7.1"
+        self.changed = 1
 
     @staticmethod
     def checksmile(smi: str) -> Union[str, None]:
@@ -906,6 +907,9 @@ class PolyMaker:
 
     def __poly_ester(self, reactants, DP=2, distribution=[], infinite_chain=False):
         """performs condenstation reaction on dicarboxyl and  diols"""
+        if self.changed == 1:
+            print("Using updated function")
+            self.changed -= 1
 
         try:
             # open acid anhydrides
@@ -941,16 +945,20 @@ class PolyMaker:
             while DP_count < DP:
 
                 # select rxn rule and reactant
-                if (df_func.loc["smiles_polymer", "aliphatic_ols"] >= 1) & (
+                #if (df_func.loc["smiles_polymer", "aliphatic_ols"] >= 1) & (
+                # JL: try allowing just 'ols' as well
+                if (df_func.loc["smiles_polymer", "aliphatic_ols"] >= 1 or df_func.loc["smiles_polymer", "ols"] >= 1) & (
                     df_func.loc["smiles_polymer", "acids"] >= 1
                 ):
-                    msk = ((df_func.acids >= 1) | (df_func.aliphatic_ols >= 1)) & (
+                    msk = ((df_func.acids >= 1) | (df_func.aliphatic_ols >= 1) | (df_func.ols >= 1)) & (
                         df_func.index != "smiles_polymer"
                     )
                     df_func_select = df_func.loc[msk]
                     a = df_func_select.sample(
                         1, weights=df_func.distribution, replace=True
                     ).index.values[0]
+                    if df_func.loc[a].ols >= 1:
+                        rxn_selector = "diacids_ols"
                     if df_func.loc[a].aliphatic_ols >= 1:
                         rxn_selector = "diacids_ols"
                     if df_func.loc[a].acids >= 1:
@@ -983,12 +991,12 @@ class PolyMaker:
                     df_func.loc[
                         "smiles_polymer", column_name
                     ] += -1  # substracting off functionality
-                assert (
-                    df_func.loc["smiles_polymer"][
-                        df_func.loc["smiles_polymer"] > -1
-                    ].shape
-                    == df_func.loc["smiles_polymer"].shape
-                )
+                #assert (
+                #    df_func.loc["smiles_polymer"][
+                #        df_func.loc["smiles_polymer"] > -1
+                #    ].shape
+                #    == df_func.loc["smiles_polymer"].shape
+                #)
 
                 # React and select product
                 mola = Chem.MolFromSmiles(a)
