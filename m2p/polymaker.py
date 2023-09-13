@@ -140,7 +140,7 @@ class PolyMaker:
             SMILES strings seperated by "." if multiple SMILES.
         stereochemistry : bool, optional
             Whether or not to retain stereochemistry in SMILES strings, by default False
-        stereochemistry : bool, optional
+        sort_by_mw : bool, optional
             Sorts monomers by their molecular weight, default True
         Returns
         -------
