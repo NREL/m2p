@@ -177,11 +177,14 @@ class PolyMaker:
             monomers == None
         # Sort by MW
         if sort_by_mw == True:
-            dict_mw_smile = {
-                Descriptors.ExactMolWt(Chem.MolFromSmiles(Chem.CanonSmiles(s))): s
+            # use a list of tuples instead of a dicitonary
+            # in case there are monomers with the same molecular weight
+            list_mw_smile = [
+                (Descriptors.ExactMolWt(Chem.MolFromSmiles(Chem.CanonSmiles(s))), s)
                 for s in monomers
-            }
-            monomers = tuple(dict_mw_smile[k] for k in sorted(dict_mw_smile))
+            ]
+            monomers = tuple(s for mw, s in sorted(list_mw_smile, 
+                                                   key=lambda x: x[0]))
 
         return monomers
 
