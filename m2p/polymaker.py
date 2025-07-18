@@ -753,7 +753,7 @@ class PolyMaker:
             prod = rxn1.RunReactants((mola, molb))
 
         elif infinite_chain:
-            # terminates and removes Xe
+            # terminates and removes Cl
             rxn1 = AllChem.ReactionFromSmarts(
                 "[C:0][C:1][C:2][C:3][Cl].[C:4]=[C:5]>>[C:0][C:1][C:2][C:3][C:4][C:5][Cl]"
             )
@@ -765,12 +765,12 @@ class PolyMaker:
             prod = [rxn2.RunReactants((r,)) for r in list(itertools.chain(*prod))]
             prod = list(itertools.chain(*prod))
         else:
-            # terminates and removes Xe
+            # terminates and removes Cl
             rxn1 = AllChem.ReactionFromSmarts(
                 "[C:0][C:1][C:2][C:3][Cl].[C:4]=[C:5]>>[C:0][C:1][C:2][C:3][C:4][C:5]"
             )
             prod = rxn1.RunReactants((mola, molb))
-            # removes Kr
+            # removes F
             rxn2 = AllChem.ReactionFromSmarts(
                 "[C:0][C:1][C:2][C:3][F]>>[C:0][C:1][C:2][C:3]"
             )
