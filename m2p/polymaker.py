@@ -719,7 +719,7 @@ class PolyMaker:
 
         # rxn definition
         rxn = AllChem.ReactionFromSmarts(
-            "[C:1]=[C:2].[C:3]=[C:4]>>[At][C:1][C:2][C:3][C:4][Xe]"
+            "[C:1]=[C:2].[C:3]=[C:4]>>[F][C:1][C:2][C:3][C:4][Cl]"
         )
 
         # product creation and validation
@@ -733,7 +733,7 @@ class PolyMaker:
 
         # rxn definition
         rxn = AllChem.ReactionFromSmarts(
-            "[C:0][C:1][C:2][C:3][Xe].[C:4]=[C:5]>>[C:0][C:1][C:2][C:3][C:4][C:5][Xe]"
+            "[C:0][C:1][C:2][C:3][Cl].[C:4]=[C:5]>>[C:0][C:1][C:2][C:3][C:4][C:5][Cl]"
         )
 
         # product creation and validation
@@ -753,26 +753,26 @@ class PolyMaker:
             prod = rxn1.RunReactants((mola, molb))
 
         elif infinite_chain:
-            # terminates and removes Xe
+            # terminates and removes Cl
             rxn1 = AllChem.ReactionFromSmarts(
-                "[C:0][C:1][C:2][C:3][Xe].[C:4]=[C:5]>>[C:0][C:1][C:2][C:3][C:4][C:5][Xe]"
+                "[C:0][C:1][C:2][C:3][Cl].[C:4]=[C:5]>>[C:0][C:1][C:2][C:3][C:4][C:5][Cl]"
             )
             prod = rxn1.RunReactants((mola, molb))
             # ring closes
             rxn2 = AllChem.ReactionFromSmarts(
-                "([At][C:0][C:1].[C:2][C:3][Xe])>>[C:1][C:0][C:3][C:2]"
+                "([F][C:0][C:1].[C:2][C:3][Cl])>>[C:1][C:0][C:3][C:2]"
             )
             prod = [rxn2.RunReactants((r,)) for r in list(itertools.chain(*prod))]
             prod = list(itertools.chain(*prod))
         else:
-            # terminates and removes Xe
+            # terminates and removes Cl
             rxn1 = AllChem.ReactionFromSmarts(
-                "[C:0][C:1][C:2][C:3][Xe].[C:4]=[C:5]>>[C:0][C:1][C:2][C:3][C:4][C:5]"
+                "[C:0][C:1][C:2][C:3][Cl].[C:4]=[C:5]>>[C:0][C:1][C:2][C:3][C:4][C:5]"
             )
             prod = rxn1.RunReactants((mola, molb))
-            # removes At
+            # removes F
             rxn2 = AllChem.ReactionFromSmarts(
-                "[C:0][C:1][C:2][C:3][At]>>[C:0][C:1][C:2][C:3]"
+                "[C:0][C:1][C:2][C:3][F]>>[C:0][C:1][C:2][C:3]"
             )
             prod = [rxn2.RunReactants((r,)) for r in list(itertools.chain(*prod))]
             prod = list(itertools.chain(*prod))
