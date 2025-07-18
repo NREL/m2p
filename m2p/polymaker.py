@@ -719,7 +719,7 @@ class PolyMaker:
 
         # rxn definition
         rxn = AllChem.ReactionFromSmarts(
-            "[C:1]=[C:2].[C:3]=[C:4]>>[Kr][C:1][C:2][C:3][C:4][Xe]"
+            "[C:1]=[C:2].[C:3]=[C:4]>>[At][C:1][C:2][C:3][C:4][Xe]"
         )
 
         # product creation and validation
@@ -760,7 +760,7 @@ class PolyMaker:
             prod = rxn1.RunReactants((mola, molb))
             # ring closes
             rxn2 = AllChem.ReactionFromSmarts(
-                "([Kr][C:0][C:1].[C:2][C:3][Xe])>>[C:1][C:0][C:3][C:2]"
+                "([At][C:0][C:1].[C:2][C:3][Xe])>>[C:1][C:0][C:3][C:2]"
             )
             prod = [rxn2.RunReactants((r,)) for r in list(itertools.chain(*prod))]
             prod = list(itertools.chain(*prod))
@@ -770,9 +770,9 @@ class PolyMaker:
                 "[C:0][C:1][C:2][C:3][Xe].[C:4]=[C:5]>>[C:0][C:1][C:2][C:3][C:4][C:5]"
             )
             prod = rxn1.RunReactants((mola, molb))
-            # removes Kr
+            # removes At
             rxn2 = AllChem.ReactionFromSmarts(
-                "[C:0][C:1][C:2][C:3][Kr]>>[C:0][C:1][C:2][C:3]"
+                "[C:0][C:1][C:2][C:3][At]>>[C:0][C:1][C:2][C:3]"
             )
             prod = [rxn2.RunReactants((r,)) for r in list(itertools.chain(*prod))]
             prod = list(itertools.chain(*prod))
