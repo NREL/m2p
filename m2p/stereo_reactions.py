@@ -102,7 +102,7 @@ def get_vinyl_prop_dict(smiles_list: List[str]):
         # Generate dict entries one by one
         mol = stm(smi)
         rxn_smarts = AllChem.ReactionFromSmarts(
-            "[C:1]=[C:2][!#1:3]>>[Br][C:1][C@@:2]([!#1:3])[I]"
+            "[C:1]=[C:2][!#1:3]>>[Tc][C:1][C@@:2]([!#1:3])[Re]"
         )
 
         products = [
@@ -112,7 +112,7 @@ def get_vinyl_prop_dict(smiles_list: List[str]):
 
         if len(products) == 1:
             rxn_smarts2 = AllChem.ReactionFromSmarts(
-                "[C:1]=[C:2][!#1:3]>>[Br][C:1][C@:2]([!#1:3])[I]"
+                "[C:1]=[C:2][!#1:3]>>[Tc][C:1][C@:2]([!#1:3])[Re]"
             )
 
             products.extend(
@@ -130,7 +130,7 @@ def get_vinyl_prop_dict(smiles_list: List[str]):
 def get_vinyl_init_dict(smi: str):
     """Generate the initiator dictionary for vinyl polymerization."""
     enantiomer_dict = get_vinyl_prop_dict(smi)
-    make_terminal = AllChem.ReactionFromSmarts("[Br][C:1]>>[F][C:1]")
+    make_terminal = AllChem.ReactionFromSmarts("[Tc][C:1]>>[At][C:1]")
 
     for key in enantiomer_dict:
         enantiomer_dict[key]["R"] = make_terminal.RunReactants(
@@ -145,7 +145,7 @@ def get_vinyl_init_dict(smi: str):
 
 def vinyl_prop_stereo(poly: AllChem.rdchem.Mol, monomer: AllChem.rdchem.Mol):
     """Carry out a single propogation step."""
-    prop_rxn = AllChem.ReactionFromSmarts("[C:1][I].[Br][C:2]>>[C:1][C:2]")
+    prop_rxn = AllChem.ReactionFromSmarts("[C:1][Re].[Tc][C:2]>>[C:1][C:2]")
 
     products = prop_rxn.RunReactants(
         (
@@ -159,7 +159,7 @@ def vinyl_prop_stereo(poly: AllChem.rdchem.Mol, monomer: AllChem.rdchem.Mol):
 
 def vinyl_terminate_stereo(poly: AllChem.rdchem.Mol):
     """Carry out a single termination step."""
-    term_rxn = AllChem.ReactionFromSmarts("([I][C:1].[F][C:2])>>([C:1].[C:2])")
+    term_rxn = AllChem.ReactionFromSmarts("([Re][C:1].[At][C:2])>>([C:1].[C:2])")
 
     products = term_rxn.RunReactants((poly,))
 
@@ -247,7 +247,7 @@ def get_ester_prop_dict(smiles_list: str):
         return AllChem.MolFromSmiles(smi)
 
     rxn_smarts = AllChem.ReactionFromSmarts(
-        "([O;D1:1][C:2]=[O:3].[C:4][O;D1:5])>>([I:1][C:2]=[O:3].[C:4][Cl:3])"
+        "([O;D1:1][C:2]=[O:3].[C:4][O;D1:5])>>([Re:1][C:2]=[O:3].[C:4][Bh:3])"
     )
 
     enantiomer_dict = dict()
@@ -267,7 +267,7 @@ def get_ester_init_dict(smiles_list: str):
         return AllChem.MolFromSmiles(smi)
 
     rxn_smarts = AllChem.ReactionFromSmarts(
-        "([O;D1:1][C:2]=[O:3].[C:4][O;D1:5])>>([Br:1][C:2]=[O:3].[C:4][Cl:3])"
+        "([O;D1:1][C:2]=[O:3].[C:4][O;D1:5])>>([Tc:1][C:2]=[O:3].[C:4][Bh:3])"
     )
 
     enantiomer_dict = dict()
@@ -280,7 +280,7 @@ def get_ester_init_dict(smiles_list: str):
 
 
 def ester_prop_stereo(poly: AllChem.rdchem.Mol, monomer: AllChem.rdchem.Mol):
-    prop_rxn = AllChem.ReactionFromSmarts("[C:1][Cl].[I][C:2]>>[C:1][O][C:2]")
+    prop_rxn = AllChem.ReactionFromSmarts("[C:1][Bh].[Re][C:2]>>[C:1][O][C:2]")
 
     products = prop_rxn.RunReactants(
         (
@@ -293,7 +293,7 @@ def ester_prop_stereo(poly: AllChem.rdchem.Mol, monomer: AllChem.rdchem.Mol):
 
 
 def ester_terminate_stereo(poly: AllChem.rdchem.Mol):
-    prop_rxn = AllChem.ReactionFromSmarts("([Br][C:1].[Cl][C:2])>>([O][C:1].[O][C:2])")
+    prop_rxn = AllChem.ReactionFromSmarts("([Tc][C:1].[Bh][C:2])>>([O][C:1].[O][C:2])")
 
     products = prop_rxn.RunReactants((poly,))
 

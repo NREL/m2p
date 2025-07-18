@@ -119,17 +119,17 @@ def test_vinyl_enantiomer_dicts():
     smis_prop_dict = get_vinyl_prop_dict(smis)
     smis_init_dict = get_vinyl_init_dict(smis)
 
-    assert m2s(smis_prop_dict[0]["R"]) == "[Kr]C[C@H]([XeH])c1ccccc1"
-    assert m2s(smis_prop_dict[0]["S"]) == "[Kr]C[C@@H]([XeH])c1ccccc1"
+    assert m2s(smis_prop_dict[0]["R"]) == "[Tc]C[C@H]([Re])c1ccccc1"
+    assert m2s(smis_prop_dict[0]["S"]) == "[Tc]C[C@@H]([Re])c1ccccc1"
 
-    assert m2s(smis_prop_dict[1]["R"]) == "C[C@](Cl)([XeH])C[Kr]"
-    assert m2s(smis_prop_dict[1]["S"]) == "C[C@@](Cl)([XeH])C[Kr]"
+    assert m2s(smis_prop_dict[1]["R"]) == "C[C@](Cl)([Re])C[Tc]"
+    assert m2s(smis_prop_dict[1]["S"]) == "C[C@@](Cl)([Re])C[Tc]"
 
-    assert m2s(smis_init_dict[0]["R"]) == "[XeH][C@@H](C[Hg])c1ccccc1"
-    assert m2s(smis_init_dict[0]["S"]) == "[XeH][C@H](C[Hg])c1ccccc1"
+    assert m2s(smis_init_dict[0]["R"]) == "[Re][C@@H](C[At])c1ccccc1"
+    assert m2s(smis_init_dict[0]["S"]) == "[Re][C@H](C[At])c1ccccc1"
 
-    assert m2s(smis_init_dict[1]["R"]) == "C[C@](Cl)([XeH])C[Hg]"
-    assert m2s(smis_init_dict[1]["S"]) == "C[C@@](Cl)([XeH])C[Hg]"
+    assert m2s(smis_init_dict[1]["R"]) == "C[C@](Cl)([Re])C[At]"
+    assert m2s(smis_init_dict[1]["S"]) == "C[C@@](Cl)([Re])C[At]"
 
 
 def test_vinyl_prop():
